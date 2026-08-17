@@ -1,0 +1,69 @@
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.logo {
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+  /* El logo es blanco/línea clara sobre transparente: en tema claro se
+     invierte para que no desaparezca contra --color-surface. */
+  filter: invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo {
+    filter: none;
+  }
+}
+
+.links {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.link {
+  color: var(--color-text-muted);
+}
+
+.link:hover {
+  color: var(--color-text);
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.usuario {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.logout {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.logout:hover {
+  background: var(--color-bg);
+}
