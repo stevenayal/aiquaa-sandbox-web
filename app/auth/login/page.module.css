@@ -1,0 +1,92 @@
+.page {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+.logo {
+  align-self: center;
+  object-fit: contain;
+  /* El logo es blanco/línea clara sobre transparente: en tema claro se
+     invierte para que no desaparezca contra --color-surface. */
+  filter: invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo {
+    filter: none;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 360px;
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.hint {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.card label {
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+}
+
+.card input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.card button {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  cursor: pointer;
+}
+
+.card button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.linkButton {
+  background: none;
+  color: var(--color-primary);
+  padding: 0;
+  align-self: flex-start;
+}
+
+.linkButton:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 0.9em;
+}
+
+.success {
+  color: var(--color-success);
+  font-size: 0.9em;
+}

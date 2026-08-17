@@ -1,0 +1,181 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.95em;
+}
+
+.table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.table tr:hover td {
+  background: var(--color-bg);
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field label {
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.fieldError {
+  color: var(--color-danger);
+  font-size: 0.85em;
+}
+
+.button {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  cursor: pointer;
+  font-size: 0.95em;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.buttonSecondary {
+  composes: button;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.buttonSecondary:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+.buttonDanger {
+  composes: button;
+  background: var(--color-danger);
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background: var(--color-danger);
+  opacity: 0.85;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: 0.8em;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.badgeSuccess {
+  composes: badge;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: transparent;
+}
+
+.badgeWarning {
+  composes: badge;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: transparent;
+}
+
+.badgeDanger {
+  composes: badge;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: transparent;
+}
+
+.success {
+  color: var(--color-success);
+  font-size: 0.9em;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.detailField dt {
+  color: var(--color-text-muted);
+  font-size: 0.85em;
+}
+
+.detailField dd {
+  font-size: 1em;
+}
+
+.backLink {
+  color: var(--color-text-muted);
+  align-self: flex-start;
+}
+
+.backLink:hover {
+  color: var(--color-text);
+}
