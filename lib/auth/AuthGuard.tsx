@@ -9,6 +9,12 @@ import { Nav } from "@/components/Nav";
 const API_KEY_ROUTE = "/login";
 const USUARIO_ROUTE = "/auth/login";
 
+// Flag público (sin secreto) — ver next.config.ts. Si el servidor tiene una
+// key demo configurada, capa 1 (apiKey) deja de pedirse: el proxy la inyecta
+// solo, server-side. /login sigue existiendo por si alguien quiere pisarla
+// con su propia key personal.
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
 type Phase = "loading" | "need-api-key" | "need-usuario" | "authenticated";
 
 // El módulo usuarios ES el bootstrap para conseguir un usuarioId (sección 8
@@ -32,7 +38,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const phase: Phase =
     apiKeyLoading || usuarioLoading
       ? "loading"
-      : !apiKey
+      : !apiKey && !DEMO_MODE
         ? "need-api-key"
         : !usuario
           ? "need-usuario"

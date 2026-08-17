@@ -36,6 +36,18 @@ la app limpia la key automáticamente y te manda de vuelta a `/login`.
 
 Para cerrar sesión: botón "Cerrar sesión" en la barra de navegación (limpia ambas capas).
 
+### Modo demo (sin pedir API key)
+
+Si el servidor tiene `SANDBOX_DEMO_API_KEY` configurada (ver `.env.example`), capa 1 desaparece:
+el proxy inyecta esa key server-side en cada request, sin que el browser la vea nunca — no va al
+bundle del cliente, no aparece en `localStorage`, no se puede ver con F12. `/login` sigue
+existiendo por si alguien quiere pisarla con su propia key personal (la del browser manda sobre
+la demo si está presente).
+
+Pensado para demo/uso personal — **no** para un curso con alumnos reales, ahí cada alumno
+necesita su propia key para que el rate-limit (30 req/min) y el audit log del backend lo
+distingan; una key compartida los mezcla a todos.
+
 ## Convención de selectores (`data-testid`)
 
 Todo elemento pensado para automatizar tiene un `data-testid` kebab-case, siempre sobre HTML
@@ -87,11 +99,14 @@ sigue la forma real de sus endpoints (no todos tienen list+detail simétrico):
 
 ## Deploy (Vercel)
 
-Proyecto Vercel separado del backend. Única variable de entorno, server-only:
+Proyecto Vercel separado del backend. Variables de entorno, ambas server-only:
 
 ```
 SANDBOX_API_BASE_URL=https://aiquaa-sandbox-api.vercel.app
+SANDBOX_DEMO_API_KEY=       # opcional — ver "Modo demo" arriba
 ```
 
-Setearla en Production **y** Preview (apuntando siempre a la URL de producción del backend,
-no a previews efímeras).
+Setearlas en Production **y** Preview (`SANDBOX_API_BASE_URL` apuntando siempre a la URL de
+producción del backend, no a previews efímeras). Cambiar `SANDBOX_DEMO_API_KEY` requiere
+redeploy — Next.js la lee en build time para derivar el flag público `NEXT_PUBLIC_DEMO_MODE`
+(ver `next.config.ts`).
