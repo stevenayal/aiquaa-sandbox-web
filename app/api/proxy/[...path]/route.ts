@@ -24,7 +24,10 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
   const targetUrl = `${baseUrl}/api/v1/${path.join("/")}${search}`;
 
   const outgoingHeaders = new Headers({ "content-type": "application/json" });
-  const apiKey = request.headers.get("x-api-key");
+  // La key del alumno (localStorage) manda si está; si no, cae a la key demo
+  // del servidor (SANDBOX_DEMO_API_KEY) — nunca vive en el bundle del
+  // cliente, solo la ve este proxy server-side.
+  const apiKey = request.headers.get("x-api-key") || process.env.SANDBOX_DEMO_API_KEY;
   if (apiKey) outgoingHeaders.set("x-api-key", apiKey);
 
   const hasBody = request.method !== "GET" && request.method !== "DELETE";
