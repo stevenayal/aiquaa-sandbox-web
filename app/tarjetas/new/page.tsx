@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { emitirTarjeta, type TarjetaTipo, type TarjetaMarca } from "@/lib/api/tarjetas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -36,9 +37,7 @@ export default function NuevaTarjetaPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Emitir tarjeta</h1>
-      </div>
+      <ModuleHeader moduleKey="tarjetas" title="Emitir tarjeta" />
 
       <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

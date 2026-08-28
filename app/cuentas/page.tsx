@@ -4,6 +4,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { listCuentas } from "@/lib/api/cuentas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
@@ -20,8 +21,7 @@ export default function CuentasPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Cuentas</h1>
+      <ModuleHeader moduleKey="cuentas" title="Cuentas">
         <div className={shared.field}>
           <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
@@ -32,7 +32,7 @@ export default function CuentasPage() {
             data-testid={ids.field("usuarioId")}
           />
         </div>
-      </div>
+      </ModuleHeader>
 
       <DataState
         loading={isLoading}
@@ -46,6 +46,7 @@ export default function CuentasPage() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Usuario</th>
               <th>Número</th>
               <th>Tipo</th>
               <th>Moneda</th>
@@ -58,6 +59,9 @@ export default function CuentasPage() {
               <tr key={cuenta.id} data-testid={ids.row(cuenta.id)}>
                 <td>
                   <Link href={`/cuentas/${cuenta.id}`}>{cuenta.id}</Link>
+                </td>
+                <td>
+                  <Link href={`/usuarios/${cuenta.usuario_id}`}>{cuenta.usuario_id}</Link>
                 </td>
                 <td>{cuenta.numero_cuenta}</td>
                 <td>{cuenta.tipo_cuenta}</td>

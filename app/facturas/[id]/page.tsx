@@ -3,8 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import Link from "next/link";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { getFactura, pagarFactura, type MetodoPago } from "@/lib/api/facturas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
@@ -48,14 +50,18 @@ export default function FacturaDetallePage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Factura #{id}</h1>
-      </div>
+      <ModuleHeader moduleKey="facturas" title={`Factura #${id}`} />
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
         {factura && (
           <>
             <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
+              <div className={shared.detailField}>
+                <dt>Usuario</dt>
+                <dd>
+                  <Link href={`/usuarios/${factura.usuario_id}`}>{factura.usuario_id}</Link>
+                </dd>
+              </div>
               <div className={shared.detailField}>
                 <dt>Proveedor</dt>
                 <dd>{factura.proveedor}</dd>

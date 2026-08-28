@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { listReservas, confirmarReserva, cancelarReserva } from "@/lib/api/reservas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -24,6 +25,7 @@ function badgeClass(estado: string): string {
 export default function ReservasPage() {
   const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
 
   const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
@@ -33,10 +35,12 @@ export default function ReservasPage() {
 
   async function handleAction(id: number, action: "confirmar" | "cancelar") {
     setActionError(null);
+    setActionSuccess(null);
     setPendingId(id);
     try {
       await (action === "confirmar" ? confirmarReserva(id) : cancelarReserva(id));
       await mutate();
+      setActionSuccess(action === "confirmar" ? "Reserva confirmada." : "Reserva cancelada.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la reserva.");
     } finally {
@@ -46,28 +50,30 @@ export default function ReservasPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Reservas</h1>
-        <div className={shared.headerActions}>
-          <div className={shared.field}>
-            <label htmlFor="usuarioId">usuarioId</label>
-            <input
-              id="usuarioId"
-              value={usuarioId}
-              onChange={(e) => setUsuarioId(e.target.value)}
-              placeholder="Todas"
-              data-testid={ids.field("usuarioId")}
-            />
-          </div>
-          <Link href="/reservas/new" className={shared.button}>
-            Nueva reserva
-          </Link>
+      <ModuleHeader moduleKey="reservas" title="Reservas">
+        <div className={shared.field}>
+          <label htmlFor="usuarioId">usuarioId</label>
+          <input
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+            placeholder="Todas"
+            data-testid={ids.field("usuarioId")}
+          />
         </div>
-      </div>
+        <Link href="/reservas/new" className={shared.button}>
+          Nueva reserva
+        </Link>
+      </ModuleHeader>
 
       {actionError && (
         <p role="alert" className={shared.fieldError}>
           {actionError}
+        </p>
+      )}
+      {actionSuccess && (
+        <p role="status" className={shared.success} data-testid={ids.success}>
+          {actionSuccess}
         </p>
       )}
 
@@ -83,6 +89,7 @@ export default function ReservasPage() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Usuario</th>
               <th>Servicio</th>
               <th>Fecha/hora</th>
               <th>Notas</th>
@@ -94,6 +101,9 @@ export default function ReservasPage() {
             {reservas?.map((reserva) => (
               <tr key={reserva.id} data-testid={ids.row(reserva.id)}>
                 <td>{reserva.id}</td>
+                <td>
+                  <Link href={`/usuarios/${reserva.usuario_id}`}>{reserva.usuario_id}</Link>
+                </td>
                 <td>{reserva.servicio}</td>
                 <td>{reserva.fecha_hora}</td>
                 <td>{reserva.notas ?? "—"}</td>

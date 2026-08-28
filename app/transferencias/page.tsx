@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearTransferencia } from "@/lib/api/transferencias";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
@@ -42,9 +43,7 @@ export default function NuevaTransferenciaPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Nueva transferencia</h1>
-      </div>
+      <ModuleHeader moduleKey="transferencias" title="Nueva transferencia" />
 
       <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

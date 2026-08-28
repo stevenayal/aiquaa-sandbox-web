@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { listTarjetas, bloquearTarjeta, activarTarjeta } from "@/lib/api/tarjetas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -21,6 +22,7 @@ function badgeClass(estado: string): string {
 export default function TarjetasPage() {
   const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
 
   const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
@@ -30,10 +32,12 @@ export default function TarjetasPage() {
 
   async function handleToggle(id: number, action: "bloquear" | "activar") {
     setActionError(null);
+    setActionSuccess(null);
     setPendingId(id);
     try {
       await (action === "bloquear" ? bloquearTarjeta(id) : activarTarjeta(id));
       await mutate();
+      setActionSuccess(action === "bloquear" ? "Tarjeta bloqueada." : "Tarjeta activada.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la tarjeta.");
     } finally {
@@ -43,28 +47,30 @@ export default function TarjetasPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Tarjetas</h1>
-        <div className={shared.headerActions}>
-          <div className={shared.field}>
-            <label htmlFor="usuarioId">usuarioId</label>
-            <input
-              id="usuarioId"
-              value={usuarioId}
-              onChange={(e) => setUsuarioId(e.target.value)}
-              placeholder="Todas"
-              data-testid={ids.field("usuarioId")}
-            />
-          </div>
-          <Link href="/tarjetas/new" className={shared.button}>
-            Emitir tarjeta
-          </Link>
+      <ModuleHeader moduleKey="tarjetas" title="Tarjetas">
+        <div className={shared.field}>
+          <label htmlFor="usuarioId">usuarioId</label>
+          <input
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+            placeholder="Todas"
+            data-testid={ids.field("usuarioId")}
+          />
         </div>
-      </div>
+        <Link href="/tarjetas/new" className={shared.button}>
+          Emitir tarjeta
+        </Link>
+      </ModuleHeader>
 
       {actionError && (
         <p role="alert" className={shared.fieldError}>
           {actionError}
+        </p>
+      )}
+      {actionSuccess && (
+        <p role="status" className={shared.success} data-testid={ids.success}>
+          {actionSuccess}
         </p>
       )}
 
@@ -80,6 +86,7 @@ export default function TarjetasPage() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Usuario</th>
               <th>Tipo</th>
               <th>Marca</th>
               <th>Número</th>
@@ -92,6 +99,9 @@ export default function TarjetasPage() {
             {tarjetas?.map((tarjeta) => (
               <tr key={tarjeta.id} data-testid={ids.row(tarjeta.id)}>
                 <td>{tarjeta.id}</td>
+                <td>
+                  <Link href={`/usuarios/${tarjeta.usuario_id}`}>{tarjeta.usuario_id}</Link>
+                </td>
                 <td>{tarjeta.tipo}</td>
                 <td>{tarjeta.marca}</td>
                 <td>{tarjeta.numero_enmascarado}</td>

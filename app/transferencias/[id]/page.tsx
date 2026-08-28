@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { getTransferencia } from "@/lib/api/transferencias";
 import { testIds } from "@/lib/testids";
 
@@ -24,12 +25,11 @@ export default function TransferenciaDetallePage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Transferencia #{id}</h1>
+      <ModuleHeader moduleKey="transferencias" title={`Transferencia #${id}`}>
         <Link href="/transferencias" className={shared.buttonSecondary}>
           Nueva transferencia
         </Link>
-      </div>
+      </ModuleHeader>
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
         {transferencia && (
