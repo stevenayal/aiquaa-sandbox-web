@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearReserva } from "@/lib/api/reservas";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { ApiError } from "@/lib/api/http";
@@ -57,9 +58,7 @@ export default function NuevaReservaPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Nueva reserva</h1>
-      </div>
+      <ModuleHeader moduleKey="reservas" title="Nueva reserva" />
 
       <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

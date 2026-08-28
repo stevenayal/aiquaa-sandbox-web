@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
 import styles from "./page.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearOrden, type ItemOrdenInput } from "@/lib/api/ordenes";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -67,9 +68,7 @@ export default function NuevaOrdenPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Nueva orden</h1>
-      </div>
+      <ModuleHeader moduleKey="ordenes" title="Nueva orden" />
 
       <form className={`${shared.formGrid} ${styles.form}`} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

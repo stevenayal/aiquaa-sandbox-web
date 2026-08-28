@@ -8,19 +8,20 @@ import { useApiKey } from "@/lib/auth/ApiKeyContext";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { useRosterEntry } from "@/lib/roster/useRosterEntry";
 import { logout as logoutRequest } from "@/lib/api/auth";
+import { ModuleIcon } from "@/components/icons/ModuleIcons";
+import { moduleTheme, type ModuleKey } from "@/lib/theme/moduleThemes";
 
-// Se completa a medida que cada módulo se construye (sección 8 del plan).
-export const MODULES: { href: string; label: string }[] = [
-  { href: "/usuarios/new", label: "Usuarios" },
-  { href: "/cuentas", label: "Cuentas" },
-  { href: "/transferencias", label: "Transferencias" },
-  { href: "/facturas", label: "Facturas" },
-  { href: "/ordenes", label: "Órdenes" },
-  { href: "/tarjetas", label: "Tarjetas" },
-  { href: "/notificaciones", label: "Notificaciones" },
-  { href: "/reservas", label: "Reservas" },
-  { href: "/roles", label: "Roles" },
-  { href: "/reportes", label: "Reportes" },
+export const MODULES: { href: string; label: string; key: ModuleKey }[] = [
+  { href: "/usuarios/new", label: "Usuarios", key: "usuarios" },
+  { href: "/cuentas", label: "Cuentas", key: "cuentas" },
+  { href: "/transferencias", label: "Transferencias", key: "transferencias" },
+  { href: "/facturas", label: "Facturas", key: "facturas" },
+  { href: "/ordenes", label: "Órdenes", key: "ordenes" },
+  { href: "/tarjetas", label: "Tarjetas", key: "tarjetas" },
+  { href: "/notificaciones", label: "Notificaciones", key: "notificaciones" },
+  { href: "/reservas", label: "Reservas", key: "reservas" },
+  { href: "/roles", label: "Roles", key: "roles" },
+  { href: "/reportes", label: "Reportes", key: "reportes" },
 ];
 
 // "Usuarios" queda siempre visible (bootstrap para conseguir un usuarioId,
@@ -83,6 +84,7 @@ export function Nav() {
       <div className={styles.links}>
         {visibleModules.map((m) => (
           <Link key={m.href} href={m.href} className={styles.link}>
+            <ModuleIcon name={moduleTheme(m.key).icon} className={styles.linkIcon} style={{ color: moduleTheme(m.key).accent }} />
             {m.label}
           </Link>
         ))}

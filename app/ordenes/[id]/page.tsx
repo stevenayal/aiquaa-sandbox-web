@@ -2,8 +2,10 @@
 
 import { useParams } from "next/navigation";
 import useSWR from "swr";
+import Link from "next/link";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { getOrden } from "@/lib/api/ordenes";
 import { testIds } from "@/lib/testids";
 
@@ -17,9 +19,7 @@ export default function OrdenDetallePage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Orden #{id}</h1>
-      </div>
+      <ModuleHeader moduleKey="ordenes" title={`Orden #${id}`} />
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
         {orden && (
@@ -27,7 +27,9 @@ export default function OrdenDetallePage() {
             <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
               <div className={shared.detailField}>
                 <dt>Usuario</dt>
-                <dd>{orden.usuario_id}</dd>
+                <dd>
+                  <Link href={`/usuarios/${orden.usuario_id}`}>{orden.usuario_id}</Link>
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Producto principal</dt>

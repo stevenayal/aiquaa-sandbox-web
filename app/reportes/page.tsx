@@ -4,6 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { getMovimientos, getResumen } from "@/lib/api/reportes";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
@@ -36,41 +37,38 @@ export default function ReportesPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Reportes</h1>
-        <div className={shared.headerActions}>
-          <div className={shared.field}>
-            <label htmlFor="usuarioId">usuarioId</label>
-            <input
-              id="usuarioId"
-              value={usuarioId}
-              onChange={(e) => setUsuarioId(e.target.value)}
-              placeholder="Todos"
-              data-testid={ids.field("usuarioId")}
-            />
-          </div>
-          <div className={shared.field}>
-            <label htmlFor="desde">Desde</label>
-            <input
-              id="desde"
-              type="date"
-              value={desde}
-              onChange={(e) => setDesde(e.target.value)}
-              data-testid={ids.field("desde")}
-            />
-          </div>
-          <div className={shared.field}>
-            <label htmlFor="hasta">Hasta</label>
-            <input
-              id="hasta"
-              type="date"
-              value={hasta}
-              onChange={(e) => setHasta(e.target.value)}
-              data-testid={ids.field("hasta")}
-            />
-          </div>
+      <ModuleHeader moduleKey="reportes" title="Reportes">
+        <div className={shared.field}>
+          <label htmlFor="usuarioId">usuarioId</label>
+          <input
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+            placeholder="Todos"
+            data-testid={ids.field("usuarioId")}
+          />
         </div>
-      </div>
+        <div className={shared.field}>
+          <label htmlFor="desde">Desde</label>
+          <input
+            id="desde"
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            data-testid={ids.field("desde")}
+          />
+        </div>
+        <div className={shared.field}>
+          <label htmlFor="hasta">Hasta</label>
+          <input
+            id="hasta"
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            data-testid={ids.field("hasta")}
+          />
+        </div>
+      </ModuleHeader>
 
       <DataState
         loading={resumenLoading}

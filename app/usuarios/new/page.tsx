@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearUsuario, type CrearUsuarioInput } from "@/lib/api/usuarios";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
@@ -51,9 +52,7 @@ export default function NuevoUsuarioPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Nuevo usuario</h1>
-      </div>
+      <ModuleHeader moduleKey="usuarios" title="Nuevo usuario" />
 
       <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import shared from "@/components/shared.module.css";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearNotificacion, type NotificacionCanal } from "@/lib/api/notificaciones";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { ApiError } from "@/lib/api/http";
@@ -58,9 +59,7 @@ export default function NuevaNotificacionPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Nueva notificación</h1>
-      </div>
+      <ModuleHeader moduleKey="notificaciones" title="Nueva notificación" />
 
       <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
         <div className={shared.field}>

@@ -1,0 +1,48 @@
+.sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sectionHeader h2 {
+  font-size: 1.05em;
+}
+
+.viewAll {
+  font-size: 0.85em;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.viewAll:hover {
+  text-decoration: underline;
+}
+
+.resumenGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-3);
+}
+
+.resumenStat dt {
+  color: var(--color-text-muted);
+  font-size: 0.85em;
+}
+
+.resumenStat dd {
+  font-size: 1.3em;
+  font-weight: 700;
+}

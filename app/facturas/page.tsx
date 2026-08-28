@@ -5,6 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { listFacturas, type FacturaEstado } from "@/lib/api/facturas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
@@ -29,37 +30,34 @@ export default function FacturasPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Facturas</h1>
-        <div className={shared.headerActions}>
-          <div className={shared.field}>
-            <label htmlFor="usuarioId">usuarioId</label>
-            <input
-              id="usuarioId"
-              value={usuarioId}
-              onChange={(e) => setUsuarioId(e.target.value)}
-              placeholder="Todas"
-              data-testid={ids.field("usuarioId")}
-            />
-          </div>
-          <div className={shared.field}>
-            <label htmlFor="estado">Estado</label>
-            <select
-              id="estado"
-              value={estado}
-              onChange={(e) => setEstado(e.target.value as FacturaEstado | "")}
-              data-testid={ids.field("estado")}
-            >
-              <option value="">Todos</option>
-              {ESTADOS.map((e) => (
-                <option key={e} value={e}>
-                  {e}
-                </option>
-              ))}
-            </select>
-          </div>
+      <ModuleHeader moduleKey="facturas" title="Facturas">
+        <div className={shared.field}>
+          <label htmlFor="usuarioId">usuarioId</label>
+          <input
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+            placeholder="Todas"
+            data-testid={ids.field("usuarioId")}
+          />
         </div>
-      </div>
+        <div className={shared.field}>
+          <label htmlFor="estado">Estado</label>
+          <select
+            id="estado"
+            value={estado}
+            onChange={(e) => setEstado(e.target.value as FacturaEstado | "")}
+            data-testid={ids.field("estado")}
+          >
+            <option value="">Todos</option>
+            {ESTADOS.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </div>
+      </ModuleHeader>
 
       <DataState
         loading={isLoading}
@@ -73,6 +71,7 @@ export default function FacturasPage() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Usuario</th>
               <th>Proveedor</th>
               <th>Número</th>
               <th>Monto</th>
@@ -85,6 +84,9 @@ export default function FacturasPage() {
               <tr key={factura.id} data-testid={ids.row(factura.id)}>
                 <td>
                   <Link href={`/facturas/${factura.id}`}>{factura.id}</Link>
+                </td>
+                <td>
+                  <Link href={`/usuarios/${factura.usuario_id}`}>{factura.usuario_id}</Link>
                 </td>
                 <td>{factura.proveedor}</td>
                 <td>{factura.numero_factura}</td>

@@ -4,35 +4,46 @@ import { useState } from "react";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { listRoles, listUsuarioRoles, asignarRol, revocarRol } from "@/lib/api/roles";
-import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { getUsuario } from "@/lib/api/usuarios";
+import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
 
 // No es list+detail: son los 4 roles fijos como toggles asignar/revocar
-// contra el usuario actual (desviación documentada en la sección 4 del plan).
+// contra el usuarioId buscado (igual patrón de filtro que tarjetas/facturas).
 const ids = testIds("roles");
 
 export default function RolesPage() {
-  const { usuario } = useUsuario();
+  const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
 
+  const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
+
   const { data: roles, error: rolesError, isLoading: rolesLoading } = useSWR(["roles"], listRoles);
+  const { data: usuario, error: usuarioError } = useSWR(
+    parsedUsuarioId ? ["usuario", parsedUsuarioId] : null,
+    () => getUsuario(parsedUsuarioId!),
+  );
   const {
     data: usuarioRoles,
     error: usuarioRolesError,
     isLoading: usuarioRolesLoading,
     mutate,
-  } = useSWR(usuario ? ["usuarioRoles", usuario.id] : null, () => listUsuarioRoles(usuario!.id));
+  } = useSWR(parsedUsuarioId ? ["usuarioRoles", parsedUsuarioId] : null, () => listUsuarioRoles(parsedUsuarioId!));
 
   async function handleToggle(roleId: number, active: boolean) {
-    if (!usuario) return;
+    if (!parsedUsuarioId) return;
     setActionError(null);
+    setActionSuccess(null);
     setPendingId(roleId);
     try {
-      await (active ? revocarRol(usuario.id, roleId) : asignarRol(usuario.id, roleId));
+      await (active ? revocarRol(parsedUsuarioId, roleId) : asignarRol(parsedUsuarioId, roleId));
       await mutate();
+      setActionSuccess(active ? "Rol revocado." : "Rol asignado.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar el rol.");
     } finally {
@@ -44,16 +55,38 @@ export default function RolesPage() {
 
   return (
     <div className={shared.page}>
-      <div className={shared.header}>
-        <h1>Roles{usuario ? ` de ${usuario.nombre}` : ""}</h1>
-      </div>
+      <ModuleHeader moduleKey="roles" title={`Roles${usuario ? ` de ${usuario.nombre}` : ""}`}>
+        <div className={shared.field}>
+          <label htmlFor="usuarioId">usuarioId</label>
+          <input
+            id="usuarioId"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+            placeholder="Requerido"
+            data-testid={ids.field("usuarioId")}
+          />
+        </div>
+      </ModuleHeader>
 
+      {usuarioError && (
+        <p role="alert" className={shared.fieldError}>
+          No se encontró el usuario.
+        </p>
+      )}
       {actionError && (
         <p role="alert" className={shared.fieldError}>
           {actionError}
         </p>
       )}
+      {actionSuccess && (
+        <p role="status" className={shared.success} data-testid={ids.success}>
+          {actionSuccess}
+        </p>
+      )}
 
+      {!parsedUsuarioId && <p>Ingresá un usuarioId para ver y gestionar sus roles.</p>}
+
+      {parsedUsuarioId && (
       <DataState
         loading={rolesLoading || usuarioRolesLoading}
         error={rolesError ?? usuarioRolesError ?? null}
@@ -98,6 +131,7 @@ export default function RolesPage() {
           </tbody>
         </table>
       </DataState>
+      )}
     </div>
   );
 }
