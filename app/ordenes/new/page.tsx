@@ -144,7 +144,8 @@ export default function NuevaOrdenPage() {
         </button>
 
         <p>
-          Total estimado: <strong>{totalEstimado.toFixed(2)}</strong> (el monto real lo calcula el servidor)
+          Total estimado: <strong key={totalEstimado} className={styles.total}>{totalEstimado.toFixed(2)}</strong> (el
+          monto real lo calcula el servidor)
         </p>
 
         {error && (

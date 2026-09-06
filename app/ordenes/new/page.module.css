@@ -1,3 +1,25 @@
 .form {
   max-width: 640px;
 }
+
+.total {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  animation: totalChanged 600ms ease-out;
+}
+
+@keyframes totalChanged {
+  from {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .total {
+    animation: none;
+  }
+}

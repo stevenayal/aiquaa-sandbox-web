@@ -6,6 +6,7 @@ import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { listReservas, confirmarReserva, cancelarReserva } from "@/lib/api/reservas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -27,6 +28,7 @@ export default function ReservasPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [confirmCancelarId, setConfirmCancelarId] = useState<number | null>(null);
 
   const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
   const { data: reservas, error, isLoading, mutate } = useSWR(["reservas", parsedUsuarioId], () =>
@@ -128,7 +130,7 @@ export default function ReservasPage() {
                       reserva.estado === "completada" ||
                       pendingId === reserva.id
                     }
-                    onClick={() => handleAction(reserva.id, "cancelar")}
+                    onClick={() => setConfirmCancelarId(reserva.id)}
                     data-testid={ids.rowAction(reserva.id, "cancelar")}
                   >
                     Cancelar
@@ -139,6 +141,21 @@ export default function ReservasPage() {
           </tbody>
         </table>
       </DataState>
+
+      <ConfirmDialog
+        open={confirmCancelarId !== null}
+        title="¿Cancelar esta reserva?"
+        description="No se puede deshacer: la reserva quedará marcada como cancelada."
+        confirmLabel="Cancelar reserva"
+        danger
+        testId={ids.rowAction(confirmCancelarId ?? 0, "cancelar")}
+        onCancel={() => setConfirmCancelarId(null)}
+        onConfirm={() => {
+          const id = confirmCancelarId;
+          setConfirmCancelarId(null);
+          if (id !== null) handleAction(id, "cancelar");
+        }}
+      />
     </div>
   );
 }
