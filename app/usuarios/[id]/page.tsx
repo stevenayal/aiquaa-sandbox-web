@@ -7,6 +7,7 @@ import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import styles from "./page.module.css";
 import { getUsuario, actualizarKyc, type KycEstado } from "@/lib/api/usuarios";
 import { listCuentas } from "@/lib/api/cuentas";
@@ -104,6 +105,7 @@ function TarjetasSection({ usuarioId }: { usuarioId: number }) {
   const { data, error, isLoading, mutate } = useSWR(["usuario360-tarjetas", usuarioId], () => listTarjetas(usuarioId));
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmBloquearId, setConfirmBloquearId] = useState<number | null>(null);
   const rows = (data ?? []).slice(0, 5);
 
   async function handleToggle(id: number, action: "bloquear" | "activar") {
@@ -120,6 +122,7 @@ function TarjetasSection({ usuarioId }: { usuarioId: number }) {
   }
 
   return (
+    <>
     <Section
       title="Tarjetas"
       viewAllHref={`/tarjetas?usuarioId=${usuarioId}`}
@@ -155,7 +158,7 @@ function TarjetasSection({ usuarioId }: { usuarioId: number }) {
                   type="button"
                   className={shared.buttonSecondary}
                   disabled={t.estado === "bloqueada" || pendingId === t.id}
-                  onClick={() => handleToggle(t.id, "bloquear")}
+                  onClick={() => setConfirmBloquearId(t.id)}
                 >
                   Bloquear
                 </button>
@@ -173,6 +176,21 @@ function TarjetasSection({ usuarioId }: { usuarioId: number }) {
         </tbody>
       </table>
     </Section>
+    <ConfirmDialog
+      open={confirmBloquearId !== null}
+      title="¿Bloquear esta tarjeta?"
+      description="La tarjeta dejará de poder usarse hasta que la actives de nuevo."
+      confirmLabel="Bloquear"
+      danger
+      testId={`usuarios-tarjetas-${confirmBloquearId ?? 0}`}
+      onCancel={() => setConfirmBloquearId(null)}
+      onConfirm={() => {
+        const id = confirmBloquearId;
+        setConfirmBloquearId(null);
+        if (id !== null) handleToggle(id, "bloquear");
+      }}
+    />
+    </>
   );
 }
 
@@ -262,6 +280,7 @@ function ReservasSection({ usuarioId }: { usuarioId: number }) {
   const { data, error, isLoading, mutate } = useSWR(["usuario360-reservas", usuarioId], () => listReservas(usuarioId));
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmCancelarId, setConfirmCancelarId] = useState<number | null>(null);
   const rows = (data ?? []).slice(0, 5);
 
   async function handleAction(id: number, action: "confirmar" | "cancelar") {
@@ -278,6 +297,7 @@ function ReservasSection({ usuarioId }: { usuarioId: number }) {
   }
 
   return (
+    <>
     <Section
       title="Reservas"
       viewAllHref={`/reservas?usuarioId=${usuarioId}`}
@@ -329,7 +349,7 @@ function ReservasSection({ usuarioId }: { usuarioId: number }) {
                   type="button"
                   className={shared.buttonSecondary}
                   disabled={r.estado === "cancelada" || r.estado === "completada" || pendingId === r.id}
-                  onClick={() => handleAction(r.id, "cancelar")}
+                  onClick={() => setConfirmCancelarId(r.id)}
                 >
                   Cancelar
                 </button>
@@ -339,6 +359,21 @@ function ReservasSection({ usuarioId }: { usuarioId: number }) {
         </tbody>
       </table>
     </Section>
+    <ConfirmDialog
+      open={confirmCancelarId !== null}
+      title="¿Cancelar esta reserva?"
+      description="No se puede deshacer: la reserva quedará marcada como cancelada."
+      confirmLabel="Cancelar reserva"
+      danger
+      testId={`usuarios-reservas-${confirmCancelarId ?? 0}`}
+      onCancel={() => setConfirmCancelarId(null)}
+      onConfirm={() => {
+        const id = confirmCancelarId;
+        setConfirmCancelarId(null);
+        if (id !== null) handleAction(id, "cancelar");
+      }}
+    />
+    </>
   );
 }
 
@@ -418,6 +453,7 @@ function RolesSection({ usuarioId }: { usuarioId: number }) {
   } = useSWR(["usuario360-roles", usuarioId], () => listUsuarioRoles(usuarioId));
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmRevocarId, setConfirmRevocarId] = useState<number | null>(null);
   const activeRoleIds = new Set((usuarioRoles ?? []).filter((ur) => ur.activo).map((ur) => ur.role_id));
 
   async function handleToggle(roleId: number, active: boolean) {
@@ -434,6 +470,7 @@ function RolesSection({ usuarioId }: { usuarioId: number }) {
   }
 
   return (
+    <>
     <Section
       title="Roles"
       viewAllHref={`/roles?usuarioId=${usuarioId}`}
@@ -469,7 +506,7 @@ function RolesSection({ usuarioId }: { usuarioId: number }) {
                     type="button"
                     className={active ? shared.buttonDanger : shared.button}
                     disabled={pendingId === rol.id}
-                    onClick={() => handleToggle(rol.id, active)}
+                    onClick={() => (active ? setConfirmRevocarId(rol.id) : handleToggle(rol.id, false))}
                   >
                     {active ? "Revocar" : "Asignar"}
                   </button>
@@ -480,6 +517,21 @@ function RolesSection({ usuarioId }: { usuarioId: number }) {
         </tbody>
       </table>
     </Section>
+    <ConfirmDialog
+      open={confirmRevocarId !== null}
+      title="¿Revocar este rol?"
+      description="El usuario perderá los permisos asociados de inmediato."
+      confirmLabel="Revocar"
+      danger
+      testId={`usuarios-roles-${confirmRevocarId ?? 0}`}
+      onCancel={() => setConfirmRevocarId(null)}
+      onConfirm={() => {
+        const roleId = confirmRevocarId;
+        setConfirmRevocarId(null);
+        if (roleId !== null) handleToggle(roleId, true);
+      }}
+    />
+    </>
   );
 }
 

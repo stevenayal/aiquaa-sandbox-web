@@ -5,6 +5,7 @@ import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { listRoles, listUsuarioRoles, asignarRol, revocarRol } from "@/lib/api/roles";
 import { getUsuario } from "@/lib/api/usuarios";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
@@ -20,6 +21,7 @@ export default function RolesPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [confirmRevocarId, setConfirmRevocarId] = useState<number | null>(null);
 
   const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
 
@@ -119,7 +121,7 @@ export default function RolesPage() {
                       type="button"
                       className={active ? shared.buttonDanger : shared.button}
                       disabled={pendingId === rol.id}
-                      onClick={() => handleToggle(rol.id, active)}
+                      onClick={() => (active ? setConfirmRevocarId(rol.id) : handleToggle(rol.id, false))}
                       data-testid={ids.rowAction(rol.id, active ? "revocar" : "asignar")}
                     >
                       {active ? "Revocar" : "Asignar"}
@@ -132,6 +134,21 @@ export default function RolesPage() {
         </table>
       </DataState>
       )}
+
+      <ConfirmDialog
+        open={confirmRevocarId !== null}
+        title="¿Revocar este rol?"
+        description="El usuario perderá los permisos asociados de inmediato."
+        confirmLabel="Revocar"
+        danger
+        testId={ids.rowAction(confirmRevocarId ?? 0, "revocar")}
+        onCancel={() => setConfirmRevocarId(null)}
+        onConfirm={() => {
+          const roleId = confirmRevocarId;
+          setConfirmRevocarId(null);
+          if (roleId !== null) handleToggle(roleId, true);
+        }}
+      />
     </div>
   );
 }

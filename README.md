@@ -65,6 +65,7 @@ semántico real (`<table>`, `<form>`, `<label htmlFor>`, `<button>` — nunca re
 | `{modulo}-submit` | Botón de submit |
 | `{modulo}-detail` | Contenedor de una vista de detalle |
 | `{modulo}-success` | Mensaje de confirmación (`role="status"`) |
+| `{testId}-confirm-dialog` / `-confirm-accept` / `-confirm-cancel` | Modal de confirmación (`role="alertdialog"`) antes de una acción irreversible — ver [`components/ConfirmDialog.tsx`](components/ConfirmDialog.tsx) |
 
 Definido en [`lib/testids.ts`](lib/testids.ts).
 
@@ -85,6 +86,25 @@ sigue la forma real de sus endpoints (no todos tienen list+detail simétrico):
 | Reservas | `/reservas`, `/reservas/new` | Sin detail (el backend no expone `GET /reservas/{id}`); confirmar/cancelar inline |
 | Roles | `/roles` | No es list+detail: 4 toggles asignar/revocar contra el usuario logueado |
 | Reportes | `/reportes` | Solo lectura, con filtros de fecha |
+
+## Buenas prácticas de UX aplicadas
+
+Basado en las [30 leyes de UX](https://lawsofux.com/es/). Ya estaban resueltas de fábrica:
+tokens de espaciado/color consistentes (Proximidad, Semejanza, Prägnanz), estados
+loading/error/empty estándar (`DataState`) y botones deshabilitados con label en progreso
+durante toda acción async (Umbral de Doherty), y auto-relleno del `usuarioId` desde la
+sesión (Ley de Tesler). Se sumó:
+
+- **Ley de Fitts** — objetivos táctiles de 44×44px mínimo en botones, links de nav e
+  inputs (`components/shared.module.css`, `Nav.module.css`, páginas de login).
+- **Regla de Fin de Pico** — confirmación explícita (`components/ConfirmDialog.tsx`,
+  `role="alertdialog"`) antes de bloquear una tarjeta, cancelar una reserva o revocar un
+  rol: son acciones difíciles de deshacer para el usuario del sandbox.
+- **Ley de Postel** — los emails se normalizan (`trim` + `toLowerCase`, ver
+  `lib/format.ts`) antes de mandarse al backend, en login, recuperar acceso y alta de
+  usuario.
+- **Atención selectiva** — el total estimado de una orden nueva se resalta brevemente al
+  recalcularse, para que un cambio de cantidad/precio no pase desapercibido.
 
 ## Arquitectura
 

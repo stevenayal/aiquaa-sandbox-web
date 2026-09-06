@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { login, forgotPassword, resetPassword } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/http";
+import { normalizeEmail } from "@/lib/format";
 import { testIds } from "@/lib/testids";
 
 const loginIds = testIds("auth-login");
@@ -30,7 +31,7 @@ export default function AuthLoginPage() {
 
   async function handleLogin(event: FormEvent) {
     event.preventDefault();
-    const trimmed = email.trim();
+    const trimmed = normalizeEmail(email);
     if (!trimmed) return;
 
     setSubmitting(true);
@@ -48,7 +49,7 @@ export default function AuthLoginPage() {
 
   async function handleForgot(event: FormEvent) {
     event.preventDefault();
-    const trimmed = forgotEmail.trim();
+    const trimmed = normalizeEmail(forgotEmail);
     if (!trimmed) return;
 
     setForgotSubmitting(true);

@@ -6,6 +6,7 @@ import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { listTarjetas, bloquearTarjeta, activarTarjeta } from "@/lib/api/tarjetas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
@@ -24,6 +25,7 @@ export default function TarjetasPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [confirmBloquearId, setConfirmBloquearId] = useState<number | null>(null);
 
   const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
   const { data: tarjetas, error, isLoading, mutate } = useSWR(["tarjetas", parsedUsuarioId], () =>
@@ -114,7 +116,7 @@ export default function TarjetasPage() {
                     type="button"
                     className={shared.buttonSecondary}
                     disabled={tarjeta.estado === "bloqueada" || pendingId === tarjeta.id}
-                    onClick={() => handleToggle(tarjeta.id, "bloquear")}
+                    onClick={() => setConfirmBloquearId(tarjeta.id)}
                     data-testid={ids.rowAction(tarjeta.id, "bloquear")}
                   >
                     Bloquear
@@ -134,6 +136,21 @@ export default function TarjetasPage() {
           </tbody>
         </table>
       </DataState>
+
+      <ConfirmDialog
+        open={confirmBloquearId !== null}
+        title="¿Bloquear esta tarjeta?"
+        description="La tarjeta dejará de poder usarse hasta que la actives de nuevo."
+        confirmLabel="Bloquear"
+        danger
+        testId={ids.rowAction(confirmBloquearId ?? 0, "bloquear")}
+        onCancel={() => setConfirmBloquearId(null)}
+        onConfirm={() => {
+          const id = confirmBloquearId;
+          setConfirmBloquearId(null);
+          if (id !== null) handleToggle(id, "bloquear");
+        }}
+      />
     </div>
   );
 }

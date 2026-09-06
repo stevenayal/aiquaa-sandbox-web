@@ -6,6 +6,7 @@ import shared from "@/components/shared.module.css";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearUsuario, type CrearUsuarioInput } from "@/lib/api/usuarios";
 import { ApiError } from "@/lib/api/http";
+import { normalizeEmail } from "@/lib/format";
 import { testIds } from "@/lib/testids";
 
 const ids = testIds("usuarios");
@@ -36,7 +37,7 @@ export default function NuevoUsuarioPage() {
     try {
       const usuario = await crearUsuario({
         nombre: form.nombre,
-        email: form.email,
+        email: normalizeEmail(form.email),
         documentoTipo: form.documentoTipo,
         documentoNumero: form.documentoNumero,
         fechaNacimiento: form.fechaNacimiento || undefined,
