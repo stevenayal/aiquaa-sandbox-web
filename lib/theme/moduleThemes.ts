@@ -10,7 +10,17 @@ export type ModuleKey =
   | "notificaciones"
   | "reservas"
   | "roles"
-  | "reportes";
+  | "reportes"
+  | "sesiones"
+  | "movimientos"
+  | "v2-usuarios"
+  | "v2-cuentas"
+  | "v2-tarjetas"
+  | "v2-prestamos"
+  | "v2-beneficiarios"
+  | "v2-transferencias"
+  | "v2-ahorros"
+  | "v2-depositos";
 
 export interface ModuleTheme {
   key: ModuleKey;
@@ -92,6 +102,76 @@ export const MODULE_THEMES: Record<ModuleKey, ModuleTheme> = {
     tagline: "Analítica y reportes",
     accent: "#059669",
     icon: "chart",
+  },
+  sesiones: {
+    key: "sesiones",
+    productName: "aiquaa People",
+    tagline: "Auditoría de sesiones",
+    accent: "#6366f1",
+    icon: "history",
+  },
+  movimientos: {
+    key: "movimientos",
+    productName: "aiquaa Insights",
+    tagline: "Movimientos y transacciones",
+    accent: "#10b981",
+    icon: "chart",
+  },
+  "v2-usuarios": {
+    key: "v2-usuarios",
+    productName: "aiquaa Banking",
+    tagline: "Clientes del banco",
+    accent: "#334155",
+    icon: "person",
+  },
+  "v2-cuentas": {
+    key: "v2-cuentas",
+    productName: "aiquaa Banking",
+    tagline: "Cuentas, saldos y movimientos",
+    accent: "#0e7490",
+    icon: "bank",
+  },
+  "v2-tarjetas": {
+    key: "v2-tarjetas",
+    productName: "aiquaa Banking",
+    tagline: "Tarjetas de crédito y débito",
+    accent: "#be185d",
+    icon: "card",
+  },
+  "v2-prestamos": {
+    key: "v2-prestamos",
+    productName: "aiquaa Banking",
+    tagline: "Préstamos y cuotas",
+    accent: "#92400e",
+    icon: "loan",
+  },
+  "v2-beneficiarios": {
+    key: "v2-beneficiarios",
+    productName: "aiquaa Banking",
+    tagline: "Beneficiarios",
+    accent: "#4d7c0f",
+    icon: "contact",
+  },
+  "v2-transferencias": {
+    key: "v2-transferencias",
+    productName: "aiquaa Banking",
+    tagline: "Transferencias y pagos",
+    accent: "#0369a1",
+    icon: "bank",
+  },
+  "v2-ahorros": {
+    key: "v2-ahorros",
+    productName: "aiquaa Banking",
+    tagline: "Ahorro programado",
+    accent: "#15803d",
+    icon: "piggybank",
+  },
+  "v2-depositos": {
+    key: "v2-depositos",
+    productName: "aiquaa Banking",
+    tagline: "Depósitos a plazo",
+    accent: "#6d28d9",
+    icon: "vault",
   },
 };
 

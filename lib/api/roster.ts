@@ -4,6 +4,7 @@ export interface RosterEntry {
   nombre: string;
   email: string;
   grupo: number;
+  curso: number;
 }
 
 export function getRosterEntry(email: string) {

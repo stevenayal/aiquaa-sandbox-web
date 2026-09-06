@@ -17,8 +17,29 @@ export interface UsuarioRol {
   descripcion?: string | null;
 }
 
+export interface RolInput {
+  nombre: Rol["nombre"];
+  descripcion?: string;
+}
+
 export function listRoles() {
   return apiRequest<Rol[]>("roles");
+}
+
+export function getRol(id: number) {
+  return apiRequest<Rol>(`roles/${id}`);
+}
+
+export function crearRol(input: RolInput) {
+  return apiRequest<Rol>("roles", { method: "POST", body: input });
+}
+
+export function actualizarRol(id: number, input: RolInput) {
+  return apiRequest<Rol>(`roles/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarRol(id: number) {
+  return apiRequest<void>(`roles/${id}`, { method: "DELETE" });
 }
 
 export function listUsuarioRoles(usuarioId: number) {

@@ -8,40 +8,40 @@ import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { DeleteButton } from "@/components/DeleteButton";
-import { getTransferencia, actualizarTransferencia, eliminarTransferencia } from "@/lib/api/transferencias";
+import {
+  getMovimientoDetalle,
+  actualizarMovimiento,
+  eliminarMovimiento,
+  type TipoMovimiento,
+} from "@/lib/api/movimientos";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
 
-const ids = testIds("transferencias");
+const ids = testIds("movimientos");
+const TIPOS: TipoMovimiento[] = ["transferencia", "pago_factura", "compra_ecommerce", "cargo_tarjeta"];
 
-function badgeClass(estado: string): string {
-  if (estado === "completada") return shared.badgeSuccess;
-  if (estado === "rechazada") return shared.badgeDanger;
-  return shared.badgeWarning;
-}
-
-export default function TransferenciaDetallePage() {
+export default function MovimientoDetallePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = Number(params.id);
 
-  const { data: transferencia, error, isLoading, mutate } = useSWR(["transferencia", id], () =>
-    getTransferencia(id),
+  const { data: movimiento, error, isLoading, mutate } = useSWR(["movimiento", id], () =>
+    getMovimientoDetalle(id),
   );
 
-  const [cuentaOrigenId, setCuentaOrigenId] = useState("");
-  const [cuentaDestinoId, setCuentaDestinoId] = useState("");
+  const [tipoMovimiento, setTipoMovimiento] = useState<TipoMovimiento>("transferencia");
   const [monto, setMonto] = useState("");
+  const [referenciaId, setReferenciaId] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  if (transferencia && !initialized) {
-    setCuentaOrigenId(String(transferencia.cuenta_origen_id));
-    setCuentaDestinoId(String(transferencia.cuenta_destino_id));
-    setMonto(String(transferencia.monto));
-    setDescripcion(transferencia.descripcion ?? "");
+  if (movimiento && !initialized) {
+    setTipoMovimiento(movimiento.tipo_movimiento);
+    setMonto(String(movimiento.monto));
+    setReferenciaId(movimiento.referencia_id ? String(movimiento.referencia_id) : "");
+    setDescripcion(movimiento.descripcion ?? "");
     setInitialized(true);
   }
 
@@ -50,15 +50,15 @@ export default function TransferenciaDetallePage() {
     setSubmitting(true);
     setFormError(null);
     try {
-      const updated = await actualizarTransferencia(id, {
-        cuentaOrigenId: Number(cuentaOrigenId),
-        cuentaDestinoId: Number(cuentaDestinoId),
+      const updated = await actualizarMovimiento(id, {
+        tipoMovimiento,
         monto: Number(monto),
+        referenciaId: referenciaId.trim() ? Number(referenciaId) : undefined,
         descripcion: descripcion.trim() || undefined,
       });
       await mutate(updated, { revalidate: false });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "No se pudo actualizar la transferencia.");
+      setFormError(err instanceof ApiError ? err.message : "No se pudo actualizar el movimiento.");
     } finally {
       setSubmitting(false);
     }
@@ -66,74 +66,56 @@ export default function TransferenciaDetallePage() {
 
   return (
     <div className={shared.page}>
-      <ModuleHeader moduleKey="transferencias" title={`Transferencia #${id}`}>
-        <Link href="/transferencias" className={shared.buttonSecondary}>
-          Nueva transferencia
-        </Link>
-      </ModuleHeader>
+      <ModuleHeader moduleKey="movimientos" title={`Movimiento #${id}`} />
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
-        {transferencia && (
+        {movimiento && (
           <>
-            <p role="status" className={shared.success} data-testid={ids.success}>
-              Transferencia creada.
-            </p>
             <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
               <div className={shared.detailField}>
-                <dt>Cuenta origen</dt>
+                <dt>Usuario</dt>
                 <dd>
-                  <Link href={`/cuentas/${transferencia.cuenta_origen_id}`}>
-                    {transferencia.cuenta_origen_id}
-                  </Link>
+                  <Link href={`/usuarios/${movimiento.usuario_id}`}>{movimiento.usuario_id}</Link>
                 </dd>
               </div>
               <div className={shared.detailField}>
-                <dt>Cuenta destino</dt>
-                <dd>
-                  <Link href={`/cuentas/${transferencia.cuenta_destino_id}`}>
-                    {transferencia.cuenta_destino_id}
-                  </Link>
-                </dd>
+                <dt>Tipo</dt>
+                <dd>{movimiento.tipo_movimiento}</dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{transferencia.monto}</dd>
+                <dd>{movimiento.monto}</dd>
+              </div>
+              <div className={shared.detailField}>
+                <dt>Referencia</dt>
+                <dd>{movimiento.referencia_id ?? "—"}</dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Descripción</dt>
-                <dd>{transferencia.descripcion ?? "—"}</dd>
+                <dd>{movimiento.descripcion ?? "—"}</dd>
               </div>
               <div className={shared.detailField}>
-                <dt>Estado</dt>
-                <dd>
-                  <span className={badgeClass(transferencia.estado)}>{transferencia.estado}</span>
-                </dd>
+                <dt>Fecha</dt>
+                <dd>{new Date(movimiento.created_at).toLocaleString()}</dd>
               </div>
             </dl>
 
             <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.rowAction(id, "edit-form")}>
-              <h2>Editar transferencia</h2>
+              <h2>Editar movimiento</h2>
               <div className={shared.field}>
-                <label htmlFor="cuentaOrigenId">Cuenta origen (id)</label>
-                <input
-                  id="cuentaOrigenId"
-                  type="number"
-                  required
-                  value={cuentaOrigenId}
-                  onChange={(e) => setCuentaOrigenId(e.target.value)}
-                  data-testid={ids.field("cuentaOrigenId")}
-                />
-              </div>
-              <div className={shared.field}>
-                <label htmlFor="cuentaDestinoId">Cuenta destino (id)</label>
-                <input
-                  id="cuentaDestinoId"
-                  type="number"
-                  required
-                  value={cuentaDestinoId}
-                  onChange={(e) => setCuentaDestinoId(e.target.value)}
-                  data-testid={ids.field("cuentaDestinoId")}
-                />
+                <label htmlFor="tipoMovimiento">Tipo</label>
+                <select
+                  id="tipoMovimiento"
+                  value={tipoMovimiento}
+                  onChange={(e) => setTipoMovimiento(e.target.value as TipoMovimiento)}
+                  data-testid={ids.field("tipoMovimiento")}
+                >
+                  {TIPOS.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className={shared.field}>
                 <label htmlFor="monto">Monto</label>
@@ -148,6 +130,15 @@ export default function TransferenciaDetallePage() {
                 />
               </div>
               <div className={shared.field}>
+                <label htmlFor="referenciaId">ID de referencia</label>
+                <input
+                  id="referenciaId"
+                  value={referenciaId}
+                  onChange={(e) => setReferenciaId(e.target.value)}
+                  data-testid={ids.field("referenciaId")}
+                />
+              </div>
+              <div className={shared.field}>
                 <label htmlFor="descripcion">Descripción</label>
                 <input
                   id="descripcion"
@@ -158,7 +149,7 @@ export default function TransferenciaDetallePage() {
               </div>
 
               {formError && (
-                <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("cuentaOrigenId")}>
+                <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("monto")}>
                   {formError}
                 </p>
               )}
@@ -175,11 +166,11 @@ export default function TransferenciaDetallePage() {
 
             <DeleteButton
               testId={ids.rowAction(id, "eliminar")}
-              title="¿Eliminar esta transferencia?"
-              description="Se marcará como inactiva y dejará de listarse."
-              label="Eliminar transferencia"
-              onDelete={() => eliminarTransferencia(id)}
-              onDeleted={() => router.push("/transferencias")}
+              title="¿Eliminar este movimiento?"
+              description="Se marcará como inactivo y dejará de listarse y de sumar en los reportes."
+              label="Eliminar movimiento"
+              onDelete={() => eliminarMovimiento(id)}
+              onDeleted={() => router.push("/movimientos")}
             />
           </>
         )}

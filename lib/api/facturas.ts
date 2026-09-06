@@ -40,3 +40,14 @@ export function getFactura(id: number) {
 export function pagarFactura(id: number, metodoPago: MetodoPago) {
   return apiRequest<PagarFacturaResult>(`facturas/${id}/pagar`, { method: "POST", body: { metodoPago } });
 }
+
+export function actualizarFactura(
+  id: number,
+  input: { proveedor: Factura["proveedor"]; numeroFactura: string; monto: number; fechaVencimiento: string },
+) {
+  return apiRequest<Factura>(`facturas/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarFactura(id: number) {
+  return apiRequest<void>(`facturas/${id}`, { method: "DELETE" });
+}
