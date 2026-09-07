@@ -111,7 +111,9 @@ export default function NotificacionesPage() {
                   <Link href={`/usuarios/${n.usuario_id}`}>{n.usuario_id}</Link>
                 </td>
                 <td>{n.canal}</td>
-                <td>{n.asunto}</td>
+                <td>
+                  <Link href={`/notificaciones/${n.id}`}>{n.asunto}</Link>
+                </td>
                 <td>{n.mensaje}</td>
                 <td>{n.leido ? "Sí" : "No"}</td>
                 <td>

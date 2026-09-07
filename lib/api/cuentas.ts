@@ -11,10 +11,23 @@ export interface Cuenta {
   created_at: string;
 }
 
+export interface ActualizarCuentaInput {
+  tipoCuenta: "ahorro" | "corriente";
+  moneda: "PYG" | "USD";
+}
+
 export function listCuentas(usuarioId?: number) {
   return apiRequest<Cuenta[]>("cuentas", { query: { usuarioId } });
 }
 
 export function getCuenta(id: number) {
   return apiRequest<Cuenta>(`cuentas/${id}`);
+}
+
+export function actualizarCuenta(id: number, input: ActualizarCuentaInput) {
+  return apiRequest<Cuenta>(`cuentas/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarCuenta(id: number) {
+  return apiRequest<void>(`cuentas/${id}`, { method: "DELETE" });
 }

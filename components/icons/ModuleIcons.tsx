@@ -1,6 +1,20 @@
 import type { SVGProps } from "react";
 
-export type ModuleIconName = "bank" | "card" | "utility" | "market" | "stay" | "bell" | "person" | "shield" | "chart";
+export type ModuleIconName =
+  | "bank"
+  | "card"
+  | "utility"
+  | "market"
+  | "stay"
+  | "bell"
+  | "person"
+  | "shield"
+  | "chart"
+  | "history"
+  | "loan"
+  | "contact"
+  | "piggybank"
+  | "vault";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -81,6 +95,44 @@ const ICONS: Record<ModuleIconName, (props: IconProps) => React.ReactElement> = 
       <path d="M4 19V5" />
       <path d="M4 19h16" />
       <path d="M8 19v-5M12.5 19V9M17 19v-8" />
+    </Svg>
+  ),
+  history: (props) => (
+    <Svg {...props}>
+      <circle cx="12" cy="12.5" r="8" />
+      <path d="M12 8.5v4.3l3 1.8" />
+      <path d="M8.5 3.5 6 5.7M15.5 3.5 18 5.7" />
+    </Svg>
+  ),
+  loan: (props) => (
+    <Svg {...props}>
+      <path d="M3 12.5 8 8l3 2 4-3.5 6 4.3" />
+      <path d="M8 8v11M16.5 6.5V17" />
+      <path d="M4.5 19.5h15" />
+    </Svg>
+  ),
+  contact: (props) => (
+    <Svg {...props}>
+      <rect x="3.5" y="4" width="17" height="16" rx="2" />
+      <circle cx="10.5" cy="10" r="2.1" />
+      <path d="M7.3 15.6c.6-1.7 1.9-2.5 3.2-2.5s2.6.8 3.2 2.5" />
+      <path d="M15.5 8.5h2.2M15.5 11.5h2.2" />
+    </Svg>
+  ),
+  piggybank: (props) => (
+    <Svg {...props}>
+      <path d="M5 12.8a6.3 6.3 0 0 1 6.3-6.3h3.4a4.8 4.8 0 0 1 4.3 2.7l1.5.5-.5 2-1.5-.2a6.3 6.3 0 0 1-1 2.8v2.7h-2.3v-1.4h-5v1.4H7.9v-2a5 5 0 0 1-1.7-1.3H5Z" />
+      <circle cx="15" cy="11" r=".6" fill="currentColor" stroke="none" />
+      <path d="M9.5 6.5V4.8M7 7.3 5.8 6" />
+    </Svg>
+  ),
+  vault: (props) => (
+    <Svg {...props}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r=".6" fill="currentColor" stroke="none" />
+      <path d="M12 8v1M12 15v1M8 12h1M15 12h1" />
+      <path d="M17.5 6.5h1.8M17.5 17.5h1.8" />
     </Svg>
   ),
 };

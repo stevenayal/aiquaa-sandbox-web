@@ -34,3 +34,19 @@ export function crearNotificacion(input: {
 export function marcarLeida(id: number) {
   return apiRequest<Notificacion>(`notificaciones/${id}/leer`, { method: "PATCH" });
 }
+
+export function getNotificacion(id: number) {
+  return apiRequest<Notificacion>(`notificaciones/${id}`);
+}
+
+// leido/estado no son reemplazables por PUT — leido sigue gobernado por marcarLeida.
+export function actualizarNotificacion(
+  id: number,
+  input: { canal: NotificacionCanal; asunto: string; mensaje: string },
+) {
+  return apiRequest<Notificacion>(`notificaciones/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarNotificacion(id: number) {
+  return apiRequest<void>(`notificaciones/${id}`, { method: "DELETE" });
+}

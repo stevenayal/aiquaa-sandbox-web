@@ -20,6 +20,10 @@ export function listTarjetas(usuarioId?: number) {
   return apiRequest<Tarjeta[]>("tarjetas", { query: { usuarioId } });
 }
 
+export function getTarjeta(id: number) {
+  return apiRequest<Tarjeta>(`tarjetas/${id}`);
+}
+
 export function emitirTarjeta(usuarioId: number, tipo: TarjetaTipo, marca: TarjetaMarca) {
   return apiRequest<Tarjeta>("tarjetas", { method: "POST", body: { usuarioId, tipo, marca } });
 }
@@ -30,4 +34,15 @@ export function bloquearTarjeta(id: number) {
 
 export function activarTarjeta(id: number) {
   return apiRequest<Tarjeta>(`tarjetas/${id}/activar`, { method: "PATCH" });
+}
+
+export function actualizarTarjeta(
+  id: number,
+  input: { tipo: Tarjeta["tipo"]; marca: Tarjeta["marca"]; limiteCredito?: number },
+) {
+  return apiRequest<Tarjeta>(`tarjetas/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarTarjeta(id: number) {
+  return apiRequest<void>(`tarjetas/${id}`, { method: "DELETE" });
 }

@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DeleteButton } from "@/components/DeleteButton";
 import styles from "./page.module.css";
-import { getUsuario, actualizarKyc, type KycEstado } from "@/lib/api/usuarios";
+import {
+  getUsuario,
+  actualizarUsuario,
+  eliminarUsuario,
+  actualizarKyc,
+  type KycEstado,
+  type CrearUsuarioInput,
+} from "@/lib/api/usuarios";
+import { normalizeEmail } from "@/lib/format";
 import { listCuentas } from "@/lib/api/cuentas";
 import { listTarjetas, bloquearTarjeta, activarTarjeta } from "@/lib/api/tarjetas";
 import { listFacturas } from "@/lib/api/facturas";
@@ -23,6 +32,7 @@ import { testIds } from "@/lib/testids";
 
 const ids = testIds("usuarios");
 const KYC_ESTADOS: KycEstado[] = ["pendiente", "verificado", "rechazado"];
+const DOCUMENTO_TIPOS: CrearUsuarioInput["documentoTipo"][] = ["CI", "pasaporte", "RUC"];
 
 function kycBadgeClass(estado: KycEstado): string {
   if (estado === "verificado") return shared.badgeSuccess;
@@ -572,6 +582,7 @@ function ResumenSection({ usuarioId }: { usuarioId: number }) {
 
 export default function UsuarioDetallePage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = Number(params.id);
 
   const { data: usuario, error, isLoading, mutate } = useSWR(["usuario", id], () => getUsuario(id));
@@ -579,6 +590,21 @@ export default function UsuarioDetallePage() {
   const [kycEstado, setKycEstado] = useState<KycEstado>("pendiente");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [editForm, setEditForm] = useState<CrearUsuarioInput | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  if (usuario && !editForm) {
+    setEditForm({
+      nombre: usuario.nombre,
+      email: usuario.email,
+      documentoTipo: usuario.documento_tipo,
+      documentoNumero: usuario.documento_numero,
+      fechaNacimiento: usuario.fecha_nacimiento ?? undefined,
+      direccion: usuario.direccion ?? undefined,
+    });
+  }
 
   async function handleKycSubmit(event: FormEvent) {
     event.preventDefault();
@@ -591,6 +617,21 @@ export default function UsuarioDetallePage() {
       setFormError(err instanceof ApiError ? err.message : "No se pudo actualizar el KYC.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleEditSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!editForm) return;
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      const updated = await actualizarUsuario(id, { ...editForm, email: normalizeEmail(editForm.email) });
+      await mutate(updated, { revalidate: false });
+    } catch (err) {
+      setEditError(err instanceof ApiError ? err.message : "No se pudo actualizar el usuario.");
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -669,6 +710,103 @@ export default function UsuarioDetallePage() {
                 {submitting ? "Actualizando..." : "Actualizar KYC"}
               </button>
             </form>
+
+            {editForm && (
+              <form className={shared.formGrid} onSubmit={handleEditSubmit} data-testid={ids.rowAction(id, "edit-form")}>
+                <h2>Editar datos</h2>
+                <div className={shared.field}>
+                  <label htmlFor="edit-nombre">Nombre</label>
+                  <input
+                    id="edit-nombre"
+                    required
+                    value={editForm.nombre}
+                    onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                    data-testid={ids.field("edit-nombre")}
+                  />
+                </div>
+                <div className={shared.field}>
+                  <label htmlFor="edit-email">Email</label>
+                  <input
+                    id="edit-email"
+                    type="email"
+                    required
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    data-testid={ids.field("edit-email")}
+                  />
+                </div>
+                <div className={shared.field}>
+                  <label htmlFor="edit-documentoTipo">Tipo de documento</label>
+                  <select
+                    id="edit-documentoTipo"
+                    value={editForm.documentoTipo}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, documentoTipo: e.target.value as CrearUsuarioInput["documentoTipo"] })
+                    }
+                    data-testid={ids.field("edit-documentoTipo")}
+                  >
+                    {DOCUMENTO_TIPOS.map((tipo) => (
+                      <option key={tipo} value={tipo}>
+                        {tipo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={shared.field}>
+                  <label htmlFor="edit-documentoNumero">Número de documento</label>
+                  <input
+                    id="edit-documentoNumero"
+                    required
+                    value={editForm.documentoNumero}
+                    onChange={(e) => setEditForm({ ...editForm, documentoNumero: e.target.value })}
+                    data-testid={ids.field("edit-documentoNumero")}
+                  />
+                </div>
+                <div className={shared.field}>
+                  <label htmlFor="edit-fechaNacimiento">Fecha de nacimiento</label>
+                  <input
+                    id="edit-fechaNacimiento"
+                    type="date"
+                    value={editForm.fechaNacimiento ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, fechaNacimiento: e.target.value || undefined })}
+                    data-testid={ids.field("edit-fechaNacimiento")}
+                  />
+                </div>
+                <div className={shared.field}>
+                  <label htmlFor="edit-direccion">Dirección</label>
+                  <input
+                    id="edit-direccion"
+                    value={editForm.direccion ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value || undefined })}
+                    data-testid={ids.field("edit-direccion")}
+                  />
+                </div>
+
+                {editError && (
+                  <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("edit-nombre")}>
+                    {editError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className={shared.button}
+                  disabled={editSubmitting}
+                  data-testid={ids.rowAction(id, "edit-submit")}
+                >
+                  {editSubmitting ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </form>
+            )}
+
+            <DeleteButton
+              testId={ids.rowAction(id, "eliminar")}
+              title="¿Eliminar este usuario?"
+              description="Se marcará como inactivo. Sus cuentas, tarjetas y demás recursos asociados no se borran."
+              label="Eliminar usuario"
+              onDelete={() => eliminarUsuario(id)}
+              onDeleted={() => router.push("/usuarios")}
+            />
 
             <div className={styles.sections}>
               <CuentasSection usuarioId={id} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
@@ -68,6 +69,9 @@ export default function RolesPage() {
             data-testid={ids.field("usuarioId")}
           />
         </div>
+        <Link href="/roles/new" className={shared.button}>
+          Nuevo rol
+        </Link>
       </ModuleHeader>
 
       {usuarioError && (
@@ -109,7 +113,9 @@ export default function RolesPage() {
               const active = activeRoleIds.has(rol.id);
               return (
                 <tr key={rol.id} data-testid={ids.row(rol.id)}>
-                  <td>{rol.nombre}</td>
+                  <td>
+                    <Link href={`/roles/${rol.id}`}>{rol.nombre}</Link>
+                  </td>
                   <td>{rol.descripcion ?? "—"}</td>
                   <td>
                     <span className={active ? shared.badgeSuccess : shared.badge}>

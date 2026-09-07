@@ -100,7 +100,9 @@ export default function TarjetasPage() {
           <tbody>
             {tarjetas?.map((tarjeta) => (
               <tr key={tarjeta.id} data-testid={ids.row(tarjeta.id)}>
-                <td>{tarjeta.id}</td>
+                <td>
+                  <Link href={`/tarjetas/${tarjeta.id}`}>{tarjeta.id}</Link>
+                </td>
                 <td>
                   <Link href={`/usuarios/${tarjeta.usuario_id}`}>{tarjeta.usuario_id}</Link>
                 </td>

@@ -27,3 +27,16 @@ export function confirmarReserva(id: number) {
 export function cancelarReserva(id: number) {
   return apiRequest<Reserva>(`reservas/${id}/cancelar`, { method: "PATCH" });
 }
+
+export function getReserva(id: number) {
+  return apiRequest<Reserva>(`reservas/${id}`);
+}
+
+// estado no es reemplazable por PUT — sigue gobernado por confirmarReserva/cancelarReserva.
+export function actualizarReserva(id: number, input: { servicio: string; fechaHora: string; notas?: string }) {
+  return apiRequest<Reserva>(`reservas/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarReserva(id: number) {
+  return apiRequest<void>(`reservas/${id}`, { method: "DELETE" });
+}

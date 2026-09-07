@@ -12,6 +12,15 @@
   margin-top: var(--space-2);
 }
 
+.groupHeading {
+  margin-top: var(--space-4);
+  font-size: 0.85em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

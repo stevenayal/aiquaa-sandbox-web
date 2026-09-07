@@ -1,9 +1,11 @@
 export type ApiErrorCode =
   | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "RATE_LIMITED"
   | "VALIDATION_ERROR"
   | "EXECUTION_ERROR"
   | "NOT_FOUND"
+  | "CONFLICT"
   | "INTERNAL_ERROR";
 
 export class ApiError extends Error {
@@ -36,7 +38,7 @@ export function clearStoredApiKey(): void {
   window.localStorage.removeItem(API_KEY_STORAGE_KEY);
 }
 
-type Method = "GET" | "POST" | "PATCH" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface ApiRequestOptions {
   method?: Method;

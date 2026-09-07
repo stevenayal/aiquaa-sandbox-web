@@ -37,3 +37,11 @@ export function getOrden(id: number) {
 export function crearOrden(usuarioId: number, items: ItemOrdenInput[]) {
   return apiRequest<Orden>("ordenes", { method: "POST", body: { usuarioId, items } });
 }
+
+export function actualizarOrden(id: number, items: ItemOrdenInput[]) {
+  return apiRequest<Orden>(`ordenes/${id}`, { method: "PUT", body: { items } });
+}
+
+export function eliminarOrden(id: number) {
+  return apiRequest<void>(`ordenes/${id}`, { method: "DELETE" });
+}

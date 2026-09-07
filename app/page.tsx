@@ -17,7 +17,8 @@ export default function Home() {
   const { rosterEntry } = useRosterEntry(usuario?.email);
   const [buscarId, setBuscarId] = useState(usuario ? String(usuario.id) : "");
 
-  const visibleModules = getVisibleModules(rosterEntry?.grupo);
+  const visibleModules = getVisibleModules(rosterEntry);
+  const showBothCursos = visibleModules.v1.length > 0 && visibleModules.v2.length > 0;
   const nombre = rosterEntry?.nombre ?? usuario?.nombre;
 
   function handleBuscarUsuario(event: FormEvent) {
@@ -46,8 +47,9 @@ export default function Home() {
         </button>
       </form>
 
-      <nav className={styles.grid} aria-label="Módulos">
-        {visibleModules.map((m) => {
+      {showBothCursos && <h2 className={styles.groupHeading}>Curso 1</h2>}
+      <nav className={styles.grid} aria-label="Módulos del curso 1">
+        {visibleModules.v1.map((m) => {
           const theme = moduleTheme(m.key);
           return (
             <Link key={m.href} href={m.href} className={styles.tile} style={{ borderTopColor: theme.accent }}>
@@ -63,6 +65,27 @@ export default function Home() {
           );
         })}
       </nav>
+
+      {showBothCursos && <h2 className={styles.groupHeading}>Curso 2 · Productos Bancarios</h2>}
+      {visibleModules.v2.length > 0 && (
+        <nav className={styles.grid} aria-label="Módulos del curso 2">
+          {visibleModules.v2.map((m) => {
+            const theme = moduleTheme(m.key);
+            return (
+              <Link key={m.href} href={m.href} className={styles.tile} style={{ borderTopColor: theme.accent }}>
+                <span className={styles.tileIconWrap} style={{ background: theme.accent }}>
+                  <ModuleIcon name={theme.icon} className={styles.tileIcon} />
+                </span>
+                <span className={styles.tileProduct} style={{ color: theme.accent }}>
+                  {theme.productName}
+                </span>
+                <span className={styles.tileLabel}>{m.label}</span>
+                <span className={styles.tileTagline}>{theme.tagline}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
     </div>
   );
 }

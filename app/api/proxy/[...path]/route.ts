@@ -21,7 +21,13 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
 
   const { path } = await context.params;
   const { search } = new URL(request.url);
-  const targetUrl = `${baseUrl}/api/v1/${path.join("/")}${search}`;
+  // Curso 2 vive en /api/v2/**, con su propio schema/API keys — un segmento
+  // "v2" al frente del path elige esa versión; todo lo demás sigue yendo a
+  // v1 (curso 1), como siempre.
+  const [maybeVersion, ...rest] = path;
+  const version = maybeVersion === "v2" ? "v2" : "v1";
+  const restPath = maybeVersion === "v2" ? rest : path;
+  const targetUrl = `${baseUrl}/api/${version}/${restPath.join("/")}${search}`;
 
   const outgoingHeaders = new Headers({ "content-type": "application/json" });
   // La key del alumno (localStorage) manda si está; si no, cae a la key demo
@@ -62,4 +68,4 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
   return new Response(text, { status: upstream.status, headers: responseHeaders });
 }
 
-export { handler as GET, handler as POST, handler as PATCH, handler as DELETE };
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };

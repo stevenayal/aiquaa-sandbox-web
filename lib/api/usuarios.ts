@@ -24,12 +24,33 @@ export interface CrearUsuarioInput {
   direccion?: string;
 }
 
+export interface ActualizarUsuarioInput {
+  nombre: string;
+  email: string;
+  documentoTipo: "CI" | "pasaporte" | "RUC";
+  documentoNumero: string;
+  fechaNacimiento?: string;
+  direccion?: string;
+}
+
+export function listUsuarios() {
+  return apiRequest<UsuarioDetalle[]>("usuarios");
+}
+
 export function crearUsuario(input: CrearUsuarioInput) {
   return apiRequest<UsuarioDetalle>("usuarios", { method: "POST", body: input });
 }
 
 export function getUsuario(id: number) {
   return apiRequest<UsuarioDetalle>(`usuarios/${id}`);
+}
+
+export function actualizarUsuario(id: number, input: ActualizarUsuarioInput) {
+  return apiRequest<UsuarioDetalle>(`usuarios/${id}`, { method: "PUT", body: input });
+}
+
+export function eliminarUsuario(id: number) {
+  return apiRequest<void>(`usuarios/${id}`, { method: "DELETE" });
 }
 
 export function actualizarKyc(id: number, kycEstado: KycEstado) {

@@ -12,9 +12,6 @@ import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
 
-// No existe GET /reservas/{id} en el backend (solo list + confirmar/cancelar
-// por id) — mismo patrón que tarjetas/notificaciones: sin página de detail,
-// acciones inline en la fila.
 const ids = testIds("reservas");
 
 function badgeClass(estado: string): string {
@@ -102,7 +99,9 @@ export default function ReservasPage() {
           <tbody>
             {reservas?.map((reserva) => (
               <tr key={reserva.id} data-testid={ids.row(reserva.id)}>
-                <td>{reserva.id}</td>
+                <td>
+                  <Link href={`/reservas/${reserva.id}`}>{reserva.id}</Link>
+                </td>
                 <td>
                   <Link href={`/usuarios/${reserva.usuario_id}`}>{reserva.usuario_id}</Link>
                 </td>
