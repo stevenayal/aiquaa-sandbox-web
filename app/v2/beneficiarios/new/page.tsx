@@ -10,6 +10,7 @@ import { BENEFICIARIO_API_ERRORS, BeneficiarioFields, validarBeneficiario } from
 import { ClienteSelect } from "@/components/v2/EntitySelects";
 import { crearBeneficiarioV2 } from "@/lib/api/v2/beneficiarios";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { testIds } from "@/lib/testids";
 import { useBeneficiariosCliente, useClientesV2 } from "@/lib/v2/useEntidadesCliente";
@@ -27,7 +28,7 @@ export default function NuevoBeneficiarioV2Page() {
 
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
       nombre: "",
       banco: "",
       numeroCuenta: "",

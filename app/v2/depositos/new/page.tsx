@@ -11,6 +11,7 @@ import { ClienteSelect, CuentaSelect } from "@/components/v2/EntitySelects";
 import { Monto } from "@/components/Valores";
 import { constituirDepositoV2 } from "@/lib/api/v2/depositos";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
@@ -33,7 +34,7 @@ export default function NuevoDepositoV2Page() {
 
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
       cuentaId: "",
       monto: "",
       plazoDias: "90",

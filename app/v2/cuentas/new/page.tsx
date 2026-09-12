@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { ClienteSelect } from "@/components/v2/EntitySelects";
 import { abrirCuentaV2, type MonedaV2, type TipoCuentaV2 } from "@/lib/api/v2/cuentas";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { testIds } from "@/lib/testids";
 import { TIPO_CUENTA_LABEL } from "@/lib/v2/labels";
@@ -28,7 +29,7 @@ export default function NuevaCuentaV2Page() {
 
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
       tipoCuenta: "ahorro",
       moneda: "PYG",
       contrato: "",
