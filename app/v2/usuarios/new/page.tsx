@@ -7,6 +7,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { Stepper } from "@/components/Stepper";
 import { Field, FormError } from "@/components/form/Field";
 import { WizardActions } from "@/components/form/WizardActions";
+import { CheckboxField } from "@/components/form/RadioCards";
 import { useToast } from "@/components/Toast";
 import { crearUsuarioV2, type DocumentoTipo } from "@/lib/api/v2/usuarios";
 import { useFormState, mensajeContiene } from "@/lib/forms/useFormState";
@@ -162,25 +163,9 @@ export default function NuevoUsuarioV2Page() {
             </dl>
             <p className={shared.hint}>El documento no se puede modificar después del alta.</p>
 
-            <div className={form.errorOf("terminos") ? shared.fieldInvalid : undefined}>
-              <label className={shared.checkboxField} htmlFor="terminos">
-                <input
-                  id="terminos"
-                  type="checkbox"
-                  checked={form.values.terminos === "true"}
-                  onChange={(e) => form.setValue("terminos", e.target.checked ? "true" : "")}
-                  aria-invalid={form.errorOf("terminos") ? true : undefined}
-                  aria-describedby={form.errorOf("terminos") ? "terminos-error" : undefined}
-                  data-testid={ids.field("terminos")}
-                />
-                Acepto los términos y condiciones y la política de privacidad del banco.
-              </label>
-              {form.errorOf("terminos") && (
-                <p id="terminos-error" role="alert" className={shared.fieldError} data-testid={ids.fieldError("terminos")}>
-                  {form.errorOf("terminos")}
-                </p>
-              )}
-            </div>
+            <CheckboxField form={form} name="terminos">
+              Acepto los términos y condiciones y la política de privacidad del banco.
+            </CheckboxField>
           </>
         )}
 

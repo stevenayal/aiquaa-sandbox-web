@@ -18,6 +18,28 @@ interface Options<T> {
 
 export const SEARCH_DEBOUNCE_MS = 300;
 
+/**
+ * Un parámetro de la URL como estado (ej. un filtro que va a la API y por eso
+ * se necesita antes de tener las filas). Cambiarlo vuelve a la página 1.
+ */
+export function useQueryParam(name: string, pageParam = "page"): [string, (value: string) => void] {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const value = searchParams.get(name) ?? "";
+
+  function setValue(next: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set(name, next);
+    else params.delete(name);
+    params.delete(pageParam);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  return [value, setValue];
+}
+
 function normalize(value: string): string {
   return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }
