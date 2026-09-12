@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
-import { login, forgotPassword, resetPassword } from "@/lib/api/auth";
+import { useApiKey } from "@/lib/auth/ApiKeyContext";
+import { DEMO_CURSO_1 } from "@/lib/auth/demoMode";
+import { login, loginV2, forgotPassword, resetPassword } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/http";
 import { normalizeEmail } from "@/lib/format";
 import { testIds } from "@/lib/testids";
@@ -15,7 +17,13 @@ const forgotIds = testIds("auth-forgot");
 
 export default function AuthLoginPage() {
   const { setUsuario } = useUsuario();
+  const { apiKey } = useApiKey();
   const router = useRouter();
+
+  // Un alumno del curso 2 no tiene key de curso 1, y los usuarios de negocio
+  // de v1 viven en otro schema: su capa 2 es el cliente del banco (v2), y las
+  // pantallas de recuperar acceso (endpoints de v1) no le aplican.
+  const soloCurso2 = !apiKey && !DEMO_CURSO_1;
 
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +45,7 @@ export default function AuthLoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const usuario = await login(trimmed);
+      const usuario = soloCurso2 ? await loginV2(trimmed) : await login(trimmed);
       setUsuario(usuario);
       router.replace("/");
     } catch (err) {
@@ -84,7 +92,11 @@ export default function AuthLoginPage() {
       <form className={styles.card} onSubmit={handleLogin} data-testid={loginIds.form}>
         <Image src="/aiquaa-logo.png" alt="aiquaa" width={72} height={72} className={styles.logo} priority />
         <h1>Iniciar sesión</h1>
-        <p className={styles.hint}>Email de un usuario activo del sandbox.</p>
+        <p className={styles.hint}>
+          {soloCurso2
+            ? "Email de un cliente activo del banco (curso 2)."
+            : "Email de un usuario activo del sandbox."}
+        </p>
 
         <label htmlFor="email">Email</label>
         <input
@@ -107,16 +119,18 @@ export default function AuthLoginPage() {
           {submitting ? "Ingresando..." : "Ingresar"}
         </button>
 
-        <button
-          type="button"
-          className={styles.linkButton}
-          onClick={() => setShowForgot((v) => !v)}
-        >
-          ¿Olvidaste tu contraseña?
-        </button>
+        {!soloCurso2 && (
+          <button
+            type="button"
+            className={styles.linkButton}
+            onClick={() => setShowForgot((v) => !v)}
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        )}
       </form>
 
-      {showForgot && (
+      {showForgot && !soloCurso2 && (
         <form className={styles.card} onSubmit={handleForgot} data-testid={forgotIds.form}>
           <h2>Recuperar acceso</h2>
 

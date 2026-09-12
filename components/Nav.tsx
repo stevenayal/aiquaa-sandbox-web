@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import styles from "./Nav.module.css";
 import { useApiKey } from "@/lib/auth/ApiKeyContext";
+import { DEMO_CURSO_1, DEMO_CURSO_2 } from "@/lib/auth/demoMode";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { useRosterEntry } from "@/lib/roster/useRosterEntry";
 import { logout as logoutRequest } from "@/lib/api/auth";
@@ -73,21 +74,55 @@ export interface VisibleModules {
   v2: typeof MODULES_V2;
 }
 
+/** Qué cursos puede consultar la sesión: hay key (propia o demo) para cada uno. */
+export interface CursosDisponibles {
+  curso1: boolean;
+  curso2: boolean;
+}
+
 /**
- * Sin roster (no está en el roster, todavía cargando, o error) cae a
- * mostrar los módulos completos de ambos cursos — no rompe la key demo ni a
- * usuarios de sandbox que no son alumnos reales. Con roster, `curso` decide
- * qué cohorte ve (1 o 2, nunca las dos), y dentro de esa cohorte `grupo`
- * filtra a sus módulos asignados.
+ * Primer filtro: los módulos de un curso sin API key de ese curso no se
+ * muestran — cada request suyo terminaría en 401 (sin key) o 403 (key del
+ * otro curso, que v2 rechaza). Sin ninguna key (nada cargado todavía) se
+ * muestran los dos, como antes.
+ *
+ * Segundo filtro, el roster: sin roster (no está en el roster, todavía
+ * cargando, o error) quedan los módulos completos de los cursos disponibles
+ * — no rompe la key demo ni a usuarios de sandbox que no son alumnos reales.
+ * Con roster, `curso` decide qué cohorte ve (1 o 2, nunca las dos), y dentro
+ * de esa cohorte `grupo` filtra a sus módulos asignados.
  */
-export function getVisibleModules(rosterEntry: { grupo: number; curso: number } | null | undefined): VisibleModules {
-  if (rosterEntry == null) return { v1: MODULES, v2: MODULES_V2 };
+export function getVisibleModules(
+  rosterEntry: { grupo: number; curso: number } | null | undefined,
+  cursos: CursosDisponibles = { curso1: true, curso2: true },
+): VisibleModules {
+  const sinKeys = !cursos.curso1 && !cursos.curso2;
+  const base: VisibleModules = {
+    v1: cursos.curso1 || sinKeys ? MODULES : [],
+    v2: cursos.curso2 || sinKeys ? MODULES_V2 : [],
+  };
+  if (rosterEntry == null) return base;
   if (rosterEntry.curso === 2) {
     const hrefs = new Set([...GENERAL_HREFS_V2, ...(GROUP_TO_MODULE_HREFS_V2[rosterEntry.grupo] ?? [])]);
-    return { v1: [], v2: MODULES_V2.filter((m) => hrefs.has(m.href)) };
+    return { v1: [], v2: base.v2.filter((m) => hrefs.has(m.href)) };
   }
   const hrefs = new Set([...GENERAL_HREFS, ...(GROUP_TO_MODULE_HREFS[rosterEntry.grupo] ?? [])]);
-  return { v1: MODULES.filter((m) => hrefs.has(m.href)), v2: [] };
+  return { v1: base.v1.filter((m) => hrefs.has(m.href)), v2: [] };
+}
+
+/**
+ * Módulos visibles para la sesión actual: cruza el roster del alumno con las
+ * API keys que tiene cargadas (o las demo del servidor). Lo usan el Nav y el
+ * home, que tienen que mostrar exactamente lo mismo.
+ */
+export function useVisibleModules(
+  rosterEntry: { grupo: number; curso: number } | null | undefined,
+): VisibleModules {
+  const { apiKey, apiKeyV2 } = useApiKey();
+  return getVisibleModules(rosterEntry, {
+    curso1: Boolean(apiKey) || DEMO_CURSO_1,
+    curso2: Boolean(apiKeyV2) || DEMO_CURSO_2,
+  });
 }
 
 function ModuleLinkRow({ label, modules }: { label?: string; modules: VisibleModules["v1"] }) {
@@ -111,7 +146,7 @@ export function Nav() {
   const { rosterEntry } = useRosterEntry(usuario?.email);
   const router = useRouter();
 
-  const visibleModules = getVisibleModules(rosterEntry);
+  const visibleModules = useVisibleModules(rosterEntry);
   const showBothCursos = visibleModules.v1.length > 0 && visibleModules.v2.length > 0;
   const nombre = rosterEntry?.nombre ?? usuario?.nombre;
 
@@ -124,7 +159,7 @@ export function Nav() {
       }
     }
     clearUsuario();
-    clearApiKey();
+    clearApiKey(); // sin versión: se van las dos keys
     router.replace("/login");
   }
 

@@ -31,9 +31,18 @@ async function handler(request: Request, context: RouteContext): Promise<Respons
 
   const outgoingHeaders = new Headers({ "content-type": "application/json" });
   // La key del alumno (localStorage) manda si está; si no, cae a la key demo
-  // del servidor (SANDBOX_DEMO_API_KEY) — nunca vive en el bundle del
-  // cliente, solo la ve este proxy server-side.
-  const apiKey = request.headers.get("x-api-key") || process.env.SANDBOX_DEMO_API_KEY;
+  // del servidor — nunca vive en el bundle del cliente, solo la ve este proxy
+  // server-side. Hay una por curso: las rutas de v2 rechazan con 403 toda key
+  // que no sea de curso 2 (public.api_keys.curso en el backend), así que una
+  // sola key demo no puede cubrir las dos versiones.
+  // El fallback cruzado no es simétrico: v1 acepta keys de cualquier curso
+  // (solo v2 filtra), así que una key demo de curso 2 sirve para las rutas
+  // comunes (/roster, /auth/login) pero no al revés.
+  const demoKey =
+    version === "v2"
+      ? (process.env.SANDBOX_DEMO_API_KEY_V2 ?? process.env.SANDBOX_DEMO_API_KEY)
+      : (process.env.SANDBOX_DEMO_API_KEY ?? process.env.SANDBOX_DEMO_API_KEY_V2);
+  const apiKey = request.headers.get("x-api-key") || demoKey;
   if (apiKey) outgoingHeaders.set("x-api-key", apiKey);
 
   const hasBody = request.method !== "GET" && request.method !== "DELETE";

@@ -19,6 +19,12 @@ vía un proxy same-origin — el browser nunca habla directo con el backend.
    ```
 4. Abrir [http://localhost:3001](http://localhost:3001).
 
+> Si el proxy responde `502 "No se pudo contactar al backend"` y el log dice
+> `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, es un antivirus/proxy corporativo interceptando TLS: el
+> fetch server-side de Next no confía en ese certificado. Arrancar con
+> `NODE_USE_SYSTEM_CA=1` (ya está en `.claude/launch.json`) lo resuelve usando el almacén de
+> certificados del sistema.
+
 ## Login en dos capas
 
 No hay JWT ni cookies de sesión — todo vive en `localStorage` del browser:
@@ -26,10 +32,26 @@ No hay JWT ni cookies de sesión — todo vive en `localStorage` del browser:
 1. **`/login` — API key.** Pegá la `x-api-key` que te dieron para el sandbox. Se guarda en
    `localStorage` y se manda en cada request al backend a través del proxy. Sin key acá, no
    se puede entrar a ninguna otra pantalla.
+
+   Hay **una key por curso**, guardadas en slots distintos (`sandbox:apiKey` para curso 1,
+   `sandbox:apiKeyV2` para curso 2): el backend marca cada key con su cohorte
+   (`public.api_keys.curso`) y las rutas de `/api/v2/**` responden `403` a cualquier key que no
+   sea de curso 2. `/login` detecta sola de qué curso es la key que pegaste (sondea
+   `GET /v2/usuarios`: `200` ⇒ curso 2, `403` ⇒ curso 1) y la guarda en el slot correcto —
+   el formulario muestra qué key hay cargada de cada curso. Si tenés una de cada uno, cargá
+   las dos; con cualquiera de las dos ya se puede entrar.
+
+   Al revés no hace falta: las rutas de `/api/v1/**` aceptan keys de cualquier curso, así que
+   un alumno de curso 2 con solo su key usa igual los endpoints comunes (`/roster`,
+   `/auth/login`).
 2. **`/auth/login` — usuario de negocio.** Ingresá el email de un usuario activo (creado antes
    vía "Usuarios" → "Nuevo usuario", o ya existente). No hay contraseña real: el backend solo
    valida que el email corresponda a un usuario activo. El resto de los módulos dependen de
    este `usuario.id`, porque los endpoints piden `usuarioId` explícito.
+
+   En una sesión de **solo curso 2** esta capa resuelve contra los clientes del banco
+   (`GET /v2/usuarios?email=`), porque la API v2 no tiene `/auth/login` y sus clientes viven en
+   otro schema. La pantalla de "recuperar acceso" (endpoints de v1) queda oculta ahí.
 
 Si el backend responde `401` en cualquier momento (key inválida o revocada a mitad de sesión),
 la app limpia la key automáticamente y te manda de vuelta a `/login`.
@@ -38,11 +60,19 @@ Para cerrar sesión: botón "Cerrar sesión" en la barra de navegación (limpia 
 
 ### Modo demo (sin pedir API key)
 
-Si el servidor tiene `SANDBOX_DEMO_API_KEY` configurada (ver `.env.example`), capa 1 desaparece:
+Si el servidor tiene `SANDBOX_DEMO_API_KEY` (curso 1) o `SANDBOX_DEMO_API_KEY_V2` (curso 2)
+configurada (ver `.env.example`), capa 1 desaparece:
 el proxy inyecta esa key server-side en cada request, sin que el browser la vea nunca — no va al
 bundle del cliente, no aparece en `localStorage`, no se puede ver con F12. `/login` sigue
 existiendo por si alguien quiere pisarla con su propia key personal (la del browser manda sobre
 la demo si está presente).
+
+Son dos variables porque son dos keys distintas: `SANDBOX_DEMO_API_KEY_V2` es la de curso 2 y
+es la única que sirve para `/api/v2/**`. Si falta, v2 cae a `SANDBOX_DEMO_API_KEY` (que solo
+funciona si esa key ya es de curso 2); y las rutas de v1, al ser agnósticas de cohorte, caen a
+la de curso 2 si no hay una de curso 1. Los módulos que se muestran en el nav y en el home
+dependen de para qué cursos hay key (propia o demo): sin key de un curso, sus módulos no
+aparecen, porque todos sus requests terminarían en `401`/`403`.
 
 Pensado para demo/uso personal — **no** para un curso con alumnos reales, ahí cada alumno
 necesita su propia key para que el rate-limit (30 req/min) y el audit log del backend lo
@@ -112,7 +142,8 @@ sesión (Ley de Tesler). Se sumó:
   reenvía todo a `${SANDBOX_API_BASE_URL}/api/v1/...`. El browser solo pega a `/api/proxy/...`
   — cero CORS en ningún lado.
 - **Cliente HTTP**: [`lib/api/http.ts`](lib/api/http.ts) (`apiRequest`) + un archivo por grupo
-  en `lib/api/`.
+  en `lib/api/`. El prefijo del path elige la cohorte y con ella la key: `v2/cuentas` sale con
+  la key de curso 2, `cuentas` con la de curso 1.
 - **Data fetching**: [SWR](https://swr.vercel.app), `isLoading` fijo (no `isValidating`) para
   que los estados de carga sean predecibles al automatizar.
 - **Auth**: [`lib/auth/`](lib/auth) (`ApiKeyContext`, `UsuarioContext`, `AuthGuard`).
@@ -123,10 +154,12 @@ Proyecto Vercel separado del backend. Variables de entorno, ambas server-only:
 
 ```
 SANDBOX_API_BASE_URL=https://aiquaa-sandbox-api.vercel.app
-SANDBOX_DEMO_API_KEY=       # opcional — ver "Modo demo" arriba
+SANDBOX_DEMO_API_KEY=       # opcional, curso 1 — ver "Modo demo" arriba
+SANDBOX_DEMO_API_KEY_V2=    # opcional, curso 2 (key propia: v2 rechaza las de curso 1)
 ```
 
 Setearlas en Production **y** Preview (`SANDBOX_API_BASE_URL` apuntando siempre a la URL de
-producción del backend, no a previews efímeras). Cambiar `SANDBOX_DEMO_API_KEY` requiere
-redeploy — Next.js la lee en build time para derivar el flag público `NEXT_PUBLIC_DEMO_MODE`
-(ver `next.config.ts`).
+producción del backend, no a previews efímeras). Cambiar cualquiera de las keys demo requiere
+redeploy — Next.js las lee en build time para derivar los flags públicos
+`NEXT_PUBLIC_DEMO_MODE`, `NEXT_PUBLIC_DEMO_MODE_V1` y `NEXT_PUBLIC_DEMO_MODE_V2`
+(ver `next.config.ts` y `lib/auth/demoMode.ts`).
