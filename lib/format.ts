@@ -22,7 +22,8 @@ const FECHA_HORA = new Intl.DateTimeFormat("es-PY", {
   hour12: false,
 });
 
-function aNumero(value: ValorNumerico): number | null {
+/** Monto del backend (string o number) → number, o `null` si no es un número válido. */
+export function aNumero(value: ValorNumerico): number | null {
   if (value === null || value === undefined || value === "") return null;
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : null;

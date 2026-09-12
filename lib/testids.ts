@@ -18,5 +18,21 @@ export function testIds(modulo: string) {
     fieldError: (name: string) => `${modulo}-field-${name}-error`,
     submit: `${modulo}-submit`,
     detail: `${modulo}-detail`,
+    /** Error de un formulario que no corresponde a un campo puntual. */
+    formError: `${modulo}-form-error`,
+    /** Ayuda/regla visible debajo de un campo. */
+    hint: (name: string) => `${modulo}-field-${name}-hint`,
+    /** Paso de un wizard (1-based), su avance y su retroceso. */
+    step: (n: number) => `${modulo}-step-${n}`,
+    stepNext: `${modulo}-step-next`,
+    stepBack: `${modulo}-step-back`,
+    /** Comprobante de una operación terminada. */
+    receipt: `${modulo}-receipt`,
+    /** Búsqueda, orden por columna y paginación de una lista. */
+    search: `${modulo}-search`,
+    sort: (col: string) => `${modulo}-sort-${col}`,
+    pagePrev: `${modulo}-page-prev`,
+    pageNext: `${modulo}-page-next`,
+    pageInfo: `${modulo}-page-info`,
   } as const;
 }

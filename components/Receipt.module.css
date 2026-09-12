@@ -1,0 +1,40 @@
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 560px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.operacion {
+  color: var(--color-text-muted);
+  font-size: 0.9em;
+}
+
+.operacion strong {
+  color: var(--color-text);
+  font-family: var(--font-geist-mono), monospace;
+}
+
+/* Cada ítem va envuelto para poder llevar key, pero dt/dd siguen la grilla de .summary. */
+.row {
+  display: contents;
+}

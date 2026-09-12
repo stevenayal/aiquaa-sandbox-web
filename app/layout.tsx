@@ -5,6 +5,7 @@ import { ApiKeyProvider } from "@/lib/auth/ApiKeyContext";
 import { CursoProvider } from "@/lib/auth/CursoContext";
 import { UsuarioProvider } from "@/lib/auth/UsuarioContext";
 import { AuthGuard } from "@/lib/auth/AuthGuard";
+import { ToastProvider } from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <CursoProvider>
           <ApiKeyProvider>
             <UsuarioProvider>
-              <AuthGuard>{children}</AuthGuard>
+              <ToastProvider>
+                <AuthGuard>{children}</AuthGuard>
+              </ToastProvider>
             </UsuarioProvider>
           </ApiKeyProvider>
         </CursoProvider>
