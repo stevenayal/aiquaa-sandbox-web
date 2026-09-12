@@ -8,7 +8,7 @@ import shared from "@/components/shared.module.css";
 import { useCurso } from "@/lib/auth/CursoContext";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { useMenu } from "@/lib/menu/useMenu";
-import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
+import { defaultUsuarioId } from "@/lib/auth/admin";
 import { ModuleIcon } from "@/components/icons/ModuleIcons";
 
 export default function Home() {
@@ -16,8 +16,8 @@ export default function Home() {
   const { curso } = useCurso();
   const { usuario } = useUsuario();
   const { menu, rosterEntry, error, isLoading, retry } = useMenu();
-  // El admin del curso 2 no tiene productos propios: arranca sin id prellenado.
-  const [buscarId, setBuscarId] = useState(defaultUsuarioIdV2(usuario));
+  // El admin no tiene usuario/cliente propio: arranca sin id prellenado.
+  const [buscarId, setBuscarId] = useState(defaultUsuarioId(usuario));
 
   const nombre = rosterEntry?.nombre ?? usuario?.nombre;
   const showSectionHeadings = (menu?.secciones.length ?? 0) > 1;
