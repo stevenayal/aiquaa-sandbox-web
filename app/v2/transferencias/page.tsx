@@ -1,233 +1,128 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
-import { crearTransferenciaV2, listTransferenciasV2, type EstadoTransferenciaV2 } from "@/lib/api/v2/transferencias";
-import { ApiError } from "@/lib/api/http";
-import { testIds } from "@/lib/testids";
+import { ListToolbar, Pagination, SearchInput, SortableTh } from "@/components/list/ListControls";
+import { FiltroCliente } from "@/components/v2/FiltroCliente";
 import { Fecha, Monto } from "@/components/Valores";
+import { listTransferenciasV2, type EstadoTransferenciaV2, type TransferenciaV2 } from "@/lib/api/v2/transferencias";
+import { useListControls, useQueryParam } from "@/lib/list/useListControls";
+import { testIds } from "@/lib/testids";
+import { badgeFor, capitalizar } from "@/lib/v2/labels";
+import { useCuentasCliente } from "@/lib/v2/useEntidadesCliente";
+import { useFiltroCliente } from "@/lib/v2/useFiltroCliente";
 
 const ids = testIds("v2-transferencias");
-const ESTADOS: EstadoTransferenciaV2[] = ["pendiente", "completada", "rechazada", "anulada"];
-
-function badgeClass(estado: EstadoTransferenciaV2): string {
-  if (estado === "completada") return shared.badgeSuccess;
-  if (estado === "rechazada") return shared.badgeDanger;
-  if (estado === "anulada") return shared.badge;
-  return shared.badgeWarning;
-}
+const ESTADOS: EstadoTransferenciaV2[] = ["completada", "anulada", "pendiente", "rechazada"];
 
 export default function TransferenciasV2Page() {
-  const [form, setForm] = useState({ cuentaOrigenId: "", cuentaDestinoId: "", beneficiarioId: "", monto: "", concepto: "" });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const titular = useFiltroCliente();
+  const [estado, setEstado] = useQueryParam("estado");
 
-  const [filtroCuentaOrigenId, setFiltroCuentaOrigenId] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<EstadoTransferenciaV2 | "">("");
-
-  const parsedFiltroCuentaOrigenId = filtroCuentaOrigenId.trim() ? Number(filtroCuentaOrigenId) : undefined;
-  const {
-    data: transferencias,
-    error: listError,
-    isLoading: listLoading,
-    mutate: mutateList,
-  } = useSWR(["v2-transferencias", parsedFiltroCuentaOrigenId, filtroEstado], () =>
-    listTransferenciasV2({ cuentaOrigenId: parsedFiltroCuentaOrigenId, estado: filtroEstado || undefined }),
+  const { data, error, isLoading } = useSWR(["v2-transferencias", estado], () =>
+    listTransferenciasV2({ estado: (estado || undefined) as EstadoTransferenciaV2 | undefined }),
   );
+  // La API filtra por una sola cuenta origen: para "las transferencias de un
+  // cliente" se cruzan con sus cuentas acá.
+  const { cuentas, isLoading: cuentasLoading } = useCuentasCliente(titular.usuarioId);
+  const cuentaIds = new Set(cuentas.map((c) => c.id));
+  const transferencias = titular.usuarioId ? data?.filter((t) => cuentaIds.has(t.cuenta_origen_id)) : data;
 
-  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  const list = useListControls<TransferenciaV2>(cuentasLoading ? undefined : transferencias, {
+    searchText: (t) => [t.referencia, t.concepto],
+    sorters: { fecha: (t) => t.created_at, monto: (t) => Number(t.monto) },
+    defaultSort: { key: "fecha", dir: "desc" },
+  });
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    const hasDestino = form.cuentaDestinoId.trim() !== "";
-    const hasBeneficiario = form.beneficiarioId.trim() !== "";
-    if (hasDestino === hasBeneficiario) {
-      setError("Completá exactamente uno: cuenta destino o beneficiario, no ambos ni ninguno.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await crearTransferenciaV2({
-        cuentaOrigenId: Number(form.cuentaOrigenId),
-        cuentaDestinoId: hasDestino ? Number(form.cuentaDestinoId) : undefined,
-        beneficiarioId: hasBeneficiario ? Number(form.beneficiarioId) : undefined,
-        monto: Number(form.monto),
-        concepto: form.concepto.trim() || undefined,
-      });
-      setForm((prev) => ({ ...prev, cuentaDestinoId: "", beneficiarioId: "", monto: "", concepto: "" }));
-      await mutateList();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo crear la transferencia.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const nuevaHref = titular.usuarioId ? `/v2/transferencias/new?usuarioId=${titular.usuarioId}` : "/v2/transferencias/new";
 
   return (
     <div className={shared.page}>
-      <ModuleHeader moduleKey="v2-transferencias" title="Transferencias" />
+      <ModuleHeader moduleKey="v2-transferencias" title="Transferencias">
+        <Link href={nuevaHref} className={shared.button} data-testid="v2-transferencias-nueva">
+          Nueva transferencia
+        </Link>
+      </ModuleHeader>
 
-      <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
+      <ListToolbar>
+        <FiltroCliente value={titular.value} onChange={titular.setValue} testId={ids.field("usuarioId")} />
         <div className={shared.field}>
-          <label htmlFor="cuentaOrigenId">Cuenta origen (id)</label>
-          <input
-            id="cuentaOrigenId"
-            type="number"
-            required
-            value={form.cuentaOrigenId}
-            onChange={(e) => update("cuentaOrigenId", e.target.value)}
-            data-testid={ids.field("cuentaOrigenId")}
-          />
+          <label htmlFor="estado">Estado</label>
+          <select id="estado" value={estado} onChange={(e) => setEstado(e.target.value)} data-testid={ids.field("estado")}>
+            <option value="">Todos</option>
+            {ESTADOS.map((e) => (
+              <option key={e} value={e}>
+                {capitalizar(e)}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className={shared.field}>
-          <label htmlFor="cuentaDestinoId">Cuenta destino (id) — transferencia interna</label>
-          <input
-            id="cuentaDestinoId"
-            type="number"
-            value={form.cuentaDestinoId}
-            onChange={(e) => update("cuentaDestinoId", e.target.value)}
-            data-testid={ids.field("cuentaDestinoId")}
-          />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="beneficiarioId">Beneficiario (id) — transferencia externa</label>
-          <input
-            id="beneficiarioId"
-            type="number"
-            value={form.beneficiarioId}
-            onChange={(e) => update("beneficiarioId", e.target.value)}
-            data-testid={ids.field("beneficiarioId")}
-          />
-        </div>
-
-        <p style={{ color: "var(--color-text-muted)", fontSize: "0.9em" }}>
-          Completá cuenta destino (interna) o beneficiario (externa), exactamente una de las dos.
-        </p>
-
-        <div className={shared.field}>
-          <label htmlFor="monto">Monto</label>
-          <input
-            id="monto"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            value={form.monto}
-            onChange={(e) => update("monto", e.target.value)}
-            data-testid={ids.field("monto")}
-          />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="concepto">Concepto (opcional)</label>
-          <input
-            id="concepto"
-            value={form.concepto}
-            onChange={(e) => update("concepto", e.target.value)}
-            data-testid={ids.field("concepto")}
-          />
-        </div>
-
-        {error && (
-          <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("cuentaDestinoId")}>
-            {error}
-          </p>
-        )}
-
-        <button type="submit" className={shared.button} disabled={submitting} data-testid={ids.submit}>
-          {submitting ? "Transfiriendo..." : "Transferir"}
-        </button>
-      </form>
-
-      <div className={shared.header}>
-        <h2>Historial</h2>
-        <div className={shared.headerActions}>
-          <div className={shared.field}>
-            <label htmlFor="filtroCuentaOrigenId">Cuenta origen (id)</label>
-            <input
-              id="filtroCuentaOrigenId"
-              value={filtroCuentaOrigenId}
-              onChange={(e) => setFiltroCuentaOrigenId(e.target.value)}
-              placeholder="Todas"
-              data-testid={ids.field("filtroCuentaOrigenId")}
-            />
-          </div>
-          <div className={shared.field}>
-            <label htmlFor="filtroEstado">Estado</label>
-            <select
-              id="filtroEstado"
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value as EstadoTransferenciaV2 | "")}
-              data-testid={ids.field("filtroEstado")}
-            >
-              <option value="">Todos</option>
-              {ESTADOS.map((e) => (
-                <option key={e} value={e}>
-                  {e}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+        <SearchInput controls={list} ids={ids} label="Buscar" placeholder="Referencia o concepto" />
+      </ListToolbar>
 
       <DataState
-        loading={listLoading}
-        error={listError ?? null}
-        empty={(transferencias?.length ?? 0) === 0}
-        count={transferencias?.length ?? 0}
+        loading={isLoading || cuentasLoading}
+        error={error ?? null}
+        empty={list.filteredCount === 0}
+        emptyMessage="No hay transferencias con estos filtros."
+        count={list.filteredCount}
         countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
       >
-        <table className={shared.table} data-testid={ids.list}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Cuenta origen</th>
-              <th>Cuenta destino</th>
-              <th>Beneficiario</th>
-              <th>Monto</th>
-              <th>Moneda</th>
-              <th>Estado</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transferencias?.map((transferencia) => (
-              <tr key={transferencia.id} data-testid={ids.row(transferencia.id)}>
-                <td>
-                  <Link href={`/v2/transferencias/${transferencia.id}`}>{transferencia.id}</Link>
-                </td>
-                <td>{transferencia.cuenta_origen_id}</td>
-                <td>{transferencia.cuenta_destino_id ?? "—"}</td>
-                <td>{transferencia.beneficiario_id ?? "—"}</td>
-                <td>
-                  <Monto value={transferencia.monto} moneda={transferencia.moneda} />
-                </td>
-                <td>{transferencia.moneda}</td>
-                <td>
-                  <span className={badgeClass(transferencia.estado)}>{transferencia.estado}</span>
-                </td>
-                <td>
-                  <Fecha value={transferencia.created_at} conHora />
-                </td>
+        <div className={shared.tableWrap}>
+          <table className={shared.table} data-testid={ids.list}>
+            <thead>
+              <tr>
+                <SortableTh controls={list} ids={ids} column="fecha">
+                  Fecha
+                </SortableTh>
+                <th>Referencia</th>
+                <th>Desde</th>
+                <th>Hacia</th>
+                <th>Concepto</th>
+                <SortableTh controls={list} ids={ids} column="monto" numeric>
+                  Monto
+                </SortableTh>
+                <th>Estado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.pageRows.map((t) => (
+                <tr key={t.id} data-testid={ids.row(t.id)} data-estado={t.estado}>
+                  <td>
+                    <Fecha value={t.created_at} conHora />
+                  </td>
+                  <td>
+                    <Link href={`/v2/transferencias/${t.id}`}>{t.referencia}</Link>
+                  </td>
+                  <td>
+                    <Link href={`/v2/cuentas/${t.cuenta_origen_id}`}>Cuenta #{t.cuenta_origen_id}</Link>
+                  </td>
+                  <td>
+                    {t.cuenta_destino_id ? (
+                      <Link href={`/v2/cuentas/${t.cuenta_destino_id}`}>Cuenta #{t.cuenta_destino_id}</Link>
+                    ) : (
+                      <Link href={`/v2/beneficiarios/${t.beneficiario_id}`}>Beneficiario #{t.beneficiario_id}</Link>
+                    )}
+                  </td>
+                  <td>{t.concepto ?? "—"}</td>
+                  <td className={shared.numeric}>
+                    <Monto value={t.monto} moneda={t.moneda} />
+                  </td>
+                  <td>
+                    <span className={badgeFor(t.estado)}>{capitalizar(t.estado)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Pagination controls={list} ids={ids} total={list.filteredCount} />
       </DataState>
     </div>
   );

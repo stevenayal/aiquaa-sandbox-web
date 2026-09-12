@@ -1,143 +1,164 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
+import { Dialog } from "@/components/Dialog";
 import { ModuleHeader } from "@/components/ModuleHeader";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { getTransferenciaV2, anularTransferenciaV2, type EstadoTransferenciaV2 } from "@/lib/api/v2/transferencias";
-import { ApiError } from "@/lib/api/http";
-import { testIds } from "@/lib/testids";
+import { Field, FormError } from "@/components/form/Field";
+import { useToast } from "@/components/Toast";
 import { Fecha, Monto } from "@/components/Valores";
+import { anularTransferenciaV2, getTransferenciaV2, type TransferenciaV2 } from "@/lib/api/v2/transferencias";
+import { useFormState } from "@/lib/forms/useFormState";
+import { formatMonto } from "@/lib/format";
+import { testIds } from "@/lib/testids";
+import { badgeFor, capitalizar } from "@/lib/v2/labels";
+import { longitud, requerido, validarCampos } from "@/lib/validation/v2";
 
 const ids = testIds("v2-transferencias");
-
-function badgeClass(estado: EstadoTransferenciaV2): string {
-  if (estado === "completada") return shared.badgeSuccess;
-  if (estado === "rechazada") return shared.badgeDanger;
-  if (estado === "anulada") return shared.badge;
-  return shared.badgeWarning;
-}
+const anularIds = testIds("v2-transferencias-anular");
 
 export default function TransferenciaV2DetallePage() {
   const params = useParams<{ id: string }>();
+  const toast = useToast();
   const id = Number(params.id);
+  const [anularOpen, setAnularOpen] = useState(false);
 
-  const { data: transferencia, error, isLoading, mutate } = useSWR(["v2-transferencia", id], () =>
-    getTransferenciaV2(id),
-  );
-
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  async function handleAnular() {
-    setConfirmOpen(false);
-    setActionError(null);
-    setActionSuccess(null);
-    setPending(true);
-    try {
-      const updated = await anularTransferenciaV2(id);
-      await mutate(updated, { revalidate: false });
-      setActionSuccess("Transferencia anulada.");
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo anular la transferencia.");
-    } finally {
-      setPending(false);
-    }
-  }
+  const { data: t, error, isLoading, mutate } = useSWR(["v2-transferencia", id], () => getTransferenciaV2(id));
 
   return (
     <div className={shared.page}>
-      <ModuleHeader moduleKey="v2-transferencias" title={`Transferencia #${id}`} />
+      <Link href="/v2/transferencias" className={shared.backLink}>
+        ← Transferencias
+      </Link>
+      <ModuleHeader moduleKey="v2-transferencias" title={t ? t.referencia : `Transferencia #${id}`} />
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
-        {transferencia && (
+        {t && (
           <>
-            <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
-              <div className={shared.detailField}>
-                <dt>Cuenta origen</dt>
-                <dd>{transferencia.cuenta_origen_id}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Cuenta destino</dt>
-                <dd>{transferencia.cuenta_destino_id ?? "—"}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Beneficiario</dt>
-                <dd>{transferencia.beneficiario_id ?? "—"}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Monto</dt>
-                <dd>
-                  <Monto value={transferencia.monto} moneda={transferencia.moneda} />
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Moneda</dt>
-                <dd>{transferencia.moneda}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Concepto</dt>
-                <dd>{transferencia.concepto ?? "—"}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Referencia</dt>
-                <dd>{transferencia.referencia}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Estado</dt>
-                <dd>
-                  <span className={badgeClass(transferencia.estado)}>{transferencia.estado}</span>
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Creada</dt>
-                <dd>
-                  <Fecha value={transferencia.created_at} conHora />
-                </dd>
-              </div>
+            <dl className={shared.summary} data-testid={ids.detail}>
+              <dt>Estado</dt>
+              <dd>
+                <span className={badgeFor(t.estado)} data-testid="v2-transferencias-detail-estado" data-value={t.estado}>
+                  {capitalizar(t.estado)}
+                </span>
+              </dd>
+              <dt>Monto</dt>
+              <dd>
+                <Monto value={t.monto} moneda={t.moneda} testId="v2-transferencias-detail-monto" />
+              </dd>
+              <dt>Fecha</dt>
+              <dd>
+                <Fecha value={t.created_at} conHora />
+              </dd>
+              <dt>Desde</dt>
+              <dd>
+                <Link href={`/v2/cuentas/${t.cuenta_origen_id}`}>Cuenta #{t.cuenta_origen_id}</Link>
+              </dd>
+              <dt>Hacia</dt>
+              <dd>
+                {t.cuenta_destino_id ? (
+                  <Link href={`/v2/cuentas/${t.cuenta_destino_id}`}>Cuenta #{t.cuenta_destino_id} (entre cuentas)</Link>
+                ) : (
+                  <Link href={`/v2/beneficiarios/${t.beneficiario_id}`}>Beneficiario #{t.beneficiario_id} (otro banco)</Link>
+                )}
+              </dd>
+              <dt>Concepto</dt>
+              <dd>{t.concepto ?? "—"}</dd>
+              <dt>Referencia</dt>
+              <dd data-testid="v2-transferencias-detail-referencia">{t.referencia}</dd>
             </dl>
 
-            {actionError && (
-              <p role="alert" className={shared.fieldError}>
-                {actionError}
-              </p>
-            )}
-            {actionSuccess && (
-              <p role="status" className={shared.success} data-testid={ids.success}>
-                {actionSuccess}
+            {t.estado === "completada" ? (
+              <div className={shared.formActions}>
+                <button
+                  type="button"
+                  className={shared.buttonDanger}
+                  onClick={() => setAnularOpen(true)}
+                  data-testid={ids.rowAction(id, "anular")}
+                >
+                  Anular transferencia
+                </button>
+              </div>
+            ) : (
+              <p className={shared.info} data-testid={ids.rowAction(id, "no-anulable")}>
+                Solo se puede anular una transferencia completada.
               </p>
             )}
 
-            {transferencia.estado === "completada" && (
-              <button
-                type="button"
-                className={shared.buttonDanger}
-                disabled={pending}
-                onClick={() => setConfirmOpen(true)}
-                data-testid={ids.rowAction(id, "anular")}
-              >
-                {pending ? "Anulando..." : "Anular transferencia"}
-              </button>
-            )}
-
-            <ConfirmDialog
-              open={confirmOpen}
-              title="¿Anular esta transferencia?"
-              description="Se revierten los saldos (contraasiento) y queda marcada como anulada — no se puede deshacer."
-              confirmLabel="Anular"
-              danger
+            <Dialog
+              open={anularOpen}
+              title="Anular transferencia"
+              description={`Se revierte ${formatMonto(t.monto, t.moneda)} a la cuenta de origen. No se puede deshacer.`}
+              onClose={() => setAnularOpen(false)}
               testId={ids.rowAction(id, "anular")}
-              onCancel={() => setConfirmOpen(false)}
-              onConfirm={handleAnular}
-            />
+            >
+              <AnularForm
+                transferencia={t}
+                onCancel={() => setAnularOpen(false)}
+                onDone={async (updated) => {
+                  setAnularOpen(false);
+                  await mutate(updated, { revalidate: false });
+                  toast.success(`Transferencia ${updated.referencia} anulada.`);
+                }}
+              />
+            </Dialog>
           </>
         )}
       </DataState>
     </div>
+  );
+}
+
+function AnularForm({
+  transferencia,
+  onCancel,
+  onDone,
+}: {
+  transferencia: TransferenciaV2;
+  onCancel: () => void;
+  onDone: (t: TransferenciaV2) => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const form = useFormState({
+    initial: { motivo: "" },
+    ids: anularIds,
+    validate: (v) =>
+      validarCampos(v, {
+        // UI: el motivo es obligatorio y descriptivo (la API lo acepta opcional).
+        motivo: [requerido("Contanos por qué anulás la transferencia."), longitud({ min: 10, max: 120, label: "El motivo" })],
+      }),
+  });
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!form.validateFields()) return;
+    setSubmitting(true);
+    try {
+      await onDone(await anularTransferenciaV2(transferencia.id, form.values.motivo.trim()));
+    } catch (err) {
+      form.applyApiError(err, [], "No se pudo anular la transferencia.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={anularIds.form}>
+      <Field form={form} name="motivo" label="Motivo" hint="Entre 10 y 120 caracteres.">
+        <textarea {...form.fieldProps("motivo", { hint: true })} rows={3} />
+      </Field>
+      <FormError form={form} />
+      <div className={shared.formActions}>
+        <button type="button" className={shared.buttonSecondary} onClick={onCancel} data-testid={anularIds.rowAction(transferencia.id, "cancelar")}>
+          Volver
+        </button>
+        <button type="submit" className={shared.buttonDanger} disabled={submitting} data-testid={anularIds.submit}>
+          {submitting ? "Anulando..." : "Anular"}
+        </button>
+      </div>
+    </form>
   );
 }
