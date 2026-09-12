@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getSesion, actualizarSesion, eliminarSesion } from "@/lib/api/sesiones";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("sesiones");
 
@@ -75,7 +76,9 @@ export default function SesionDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha</dt>
-                <dd>{new Date(sesion.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={sesion.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

@@ -3,17 +3,17 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApiKey } from "./ApiKeyContext";
+import { DEMO_MODE } from "./demoMode";
 import { useUsuario } from "./UsuarioContext";
 import { Nav } from "@/components/Nav";
 
 const API_KEY_ROUTE = "/login";
 const USUARIO_ROUTE = "/auth/login";
 
-// Flag público (sin secreto) — ver next.config.ts. Si el servidor tiene una
-// key demo configurada, capa 1 (apiKey) deja de pedirse: el proxy la inyecta
-// solo, server-side. /login sigue existiendo por si alguien quiere pisarla
-// con su propia key personal.
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+// Si el servidor tiene una key demo configurada (de cualquiera de los dos
+// cursos), capa 1 (apiKey) deja de pedirse: el proxy la inyecta solo,
+// server-side. /login sigue existiendo por si alguien quiere pisarla con su
+// propia key personal.
 
 type Phase = "loading" | "need-api-key" | "need-usuario" | "authenticated";
 
@@ -30,7 +30,10 @@ function isUsuarioBootstrapRoute(pathname: string): boolean {
  * localStorage en el servidor). Capa 1 (apiKey) manda sobre capa 2 (usuario).
  */
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { apiKey, loading: apiKeyLoading } = useApiKey();
+  // Cualquiera de las dos keys alcanza para entrar: un alumno del curso 2
+  // solo tiene key de curso 2, y sus módulos (/v2/**) son los únicos que va a
+  // usar. El Nav decide qué se ve a partir de eso (ver getVisibleModules).
+  const { apiKey, apiKeyV2, loading: apiKeyLoading } = useApiKey();
   const { usuario, loading: usuarioLoading } = useUsuario();
   const pathname = usePathname();
   const router = useRouter();
@@ -38,7 +41,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const phase: Phase =
     apiKeyLoading || usuarioLoading
       ? "loading"
-      : !apiKey && !DEMO_MODE
+      : !apiKey && !apiKeyV2 && !DEMO_MODE
         ? "need-api-key"
         : !usuario
           ? "need-usuario"

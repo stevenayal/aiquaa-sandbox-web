@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getReserva, actualizarReserva, eliminarReserva } from "@/lib/api/reservas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("reservas");
 
@@ -88,7 +89,9 @@ export default function ReservaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha/hora</dt>
-                <dd>{reserva.fecha_hora}</dd>
+                <dd>
+                  <Fecha value={reserva.fecha_hora} conHora />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -102,7 +105,9 @@ export default function ReservaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha de creación</dt>
-                <dd>{new Date(reserva.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={reserva.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listAhorrosV2, type EstadoAhorroV2 } from "@/lib/api/v2/ahorros";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("v2-ahorros");
 const ESTADOS: EstadoAhorroV2[] = ["activo", "completado", "cancelado"];
@@ -32,7 +33,7 @@ export default function AhorrosV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-ahorros" title="Ahorros">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -66,6 +67,8 @@ export default function AhorrosV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(ahorros?.length ?? 0) === 0}
+        count={ahorros?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -93,10 +96,18 @@ export default function AhorrosV2Page() {
                   <Link href={`/v2/usuarios/${ahorro.usuario_id}`}>{ahorro.usuario_id}</Link>
                 </td>
                 <td>{ahorro.nombre_meta}</td>
-                <td>{ahorro.meta_monto}</td>
-                <td>{ahorro.aporte_mensual}</td>
-                <td>{ahorro.saldo_acumulado}</td>
-                <td>{ahorro.falta_para_meta}</td>
+                <td>
+                  <Monto value={ahorro.meta_monto} />
+                </td>
+                <td>
+                  <Monto value={ahorro.aporte_mensual} />
+                </td>
+                <td>
+                  <Monto value={ahorro.saldo_acumulado} />
+                </td>
+                <td>
+                  <Monto value={ahorro.falta_para_meta} />
+                </td>
                 <td>
                   <span className={badgeClass(ahorro.estado)}>{ahorro.estado}</span>
                 </td>

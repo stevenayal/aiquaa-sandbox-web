@@ -17,6 +17,7 @@ import {
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("v2-tarjetas");
 const ESTADOS: EstadoTarjetaV2[] = ["activa", "bloqueada", "vencida"];
@@ -76,7 +77,7 @@ export default function TarjetasV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-tarjetas" title="Tarjetas">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -121,6 +122,8 @@ export default function TarjetasV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(tarjetas?.length ?? 0) === 0}
+        count={tarjetas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -143,16 +146,24 @@ export default function TarjetasV2Page() {
           <tbody>
             {tarjetas?.map((tarjeta) => (
               <tr key={tarjeta.id} data-testid={ids.row(tarjeta.id)}>
-                <td>{tarjeta.id}</td>
+                <td>
+                  <Link href={`/v2/tarjetas/${tarjeta.id}`}>{tarjeta.id}</Link>
+                </td>
                 <td>
                   <Link href={`/v2/usuarios/${tarjeta.usuario_id}`}>{tarjeta.usuario_id}</Link>
                 </td>
                 <td>{tarjeta.tipo}</td>
                 <td>{tarjeta.marca}</td>
                 <td>{tarjeta.numero_enmascarado}</td>
-                <td>{tarjeta.limite_credito}</td>
-                <td>{tarjeta.saldo_utilizado}</td>
-                <td>{tarjeta.disponible}</td>
+                <td>
+                  <Monto value={tarjeta.limite_credito} />
+                </td>
+                <td>
+                  <Monto value={tarjeta.saldo_utilizado} />
+                </td>
+                <td>
+                  <Monto value={tarjeta.disponible} />
+                </td>
                 <td>
                   <span className={badgeClass(tarjeta.estado)}>{tarjeta.estado}</span>
                 </td>

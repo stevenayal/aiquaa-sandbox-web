@@ -77,3 +77,51 @@
   color: var(--color-danger);
   font-size: 0.9em;
 }
+
+/* Estado de las dos keys (curso 1 / curso 2): cuál hay cargada y cuál falta.
+   Un alumno tiene normalmente una sola; el sandbox y las demos, las dos. */
+.keyList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+  font-size: 0.9em;
+}
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.keyRow > span:first-child {
+  flex: 1;
+}
+
+.keyOk {
+  color: var(--color-success, var(--color-text));
+  font-family: var(--font-mono, monospace);
+}
+
+.keyMissing {
+  opacity: 0.7;
+}
+
+.linkButton {
+  min-height: 44px;
+  margin: 0;
+  padding: 0 var(--space-2);
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.card .linkButton:hover:not(:disabled) {
+  background: none;
+}

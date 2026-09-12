@@ -21,6 +21,7 @@ import {
 } from "@/lib/api/v2/prestamos";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto, Porcentaje } from "@/components/Valores";
 
 const ids = testIds("v2-prestamos");
 
@@ -132,11 +133,15 @@ export default function PrestamoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto solicitado</dt>
-                <dd>{prestamo.monto_solicitado}</dd>
+                <dd>
+                  <Monto value={prestamo.monto_solicitado} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Tasa de interés</dt>
-                <dd>{prestamo.tasa_interes}</dd>
+                <dd>
+                  <Porcentaje value={prestamo.tasa_interes} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Plazo (meses)</dt>
@@ -144,7 +149,9 @@ export default function PrestamoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Saldo pendiente</dt>
-                <dd>{prestamo.saldo_pendiente}</dd>
+                <dd>
+                  <Monto value={prestamo.saldo_pendiente} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -154,7 +161,9 @@ export default function PrestamoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Creado</dt>
-                <dd>{new Date(prestamo.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={prestamo.created_at} conHora />
+                </dd>
               </div>
             </dl>
 
@@ -195,6 +204,8 @@ export default function PrestamoV2DetallePage() {
                 loadingTestId={`${ids.rowAction(id, "cuotas")}-loading`}
                 errorTestId={`${ids.rowAction(id, "cuotas")}-error`}
                 emptyTestId={`${ids.rowAction(id, "cuotas")}-empty`}
+                count={cuotas?.length ?? 0}
+                countTestId={`${ids.rowAction(id, "cuotas")}-count`}
               >
                 <table className={shared.table} data-testid={ids.rowAction(id, "cuotas-list")}>
                   <thead>
@@ -211,12 +222,18 @@ export default function PrestamoV2DetallePage() {
                     {cuotas?.map((cuota) => (
                       <tr key={cuota.numero_cuota} data-testid={ids.row(`${id}-${cuota.numero_cuota}`)}>
                         <td>{cuota.numero_cuota}</td>
-                        <td>{cuota.monto}</td>
-                        <td>{new Date(cuota.fecha_vencimiento).toLocaleDateString()}</td>
+                        <td>
+                          <Monto value={cuota.monto} />
+                        </td>
+                        <td>
+                          <Fecha value={cuota.fecha_vencimiento} />
+                        </td>
                         <td>
                           <span className={cuotaBadgeClass(cuota.estado)}>{cuota.estado}</span>
                         </td>
-                        <td>{cuota.fecha_pago ? new Date(cuota.fecha_pago).toLocaleDateString() : "—"}</td>
+                        <td>
+                          <Fecha value={cuota.fecha_pago} />
+                        </td>
                         <td className={shared.rowActions}>
                           <button
                             type="button"

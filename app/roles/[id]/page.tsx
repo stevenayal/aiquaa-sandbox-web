@@ -10,6 +10,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getRol, actualizarRol, eliminarRol, type Rol } from "@/lib/api/roles";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("roles");
 const NOMBRES: Rol["nombre"][] = ["admin", "soporte", "auditor", "operador"];
@@ -65,7 +66,9 @@ export default function RolDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Creado</dt>
-                <dd>{new Date(rol.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={rol.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

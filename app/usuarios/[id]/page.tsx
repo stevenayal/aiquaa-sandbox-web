@@ -29,6 +29,7 @@ import { listRoles, listUsuarioRoles, asignarRol, revocarRol } from "@/lib/api/r
 import { getResumen } from "@/lib/api/reportes";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("usuarios");
 const KYC_ESTADOS: KycEstado[] = ["pendiente", "verificado", "rechazado"];
@@ -47,10 +48,12 @@ interface SectionProps {
   error: Error | null | undefined;
   empty: boolean;
   testId: string;
+  /** Total real del recurso (las secciones muestran solo las primeras filas). */
+  count?: number;
   children: ReactNode;
 }
 
-function Section({ title, viewAllHref, loading, error, empty, testId, children }: SectionProps) {
+function Section({ title, viewAllHref, loading, error, empty, testId, count, children }: SectionProps) {
   return (
     <div className={`${shared.card} ${styles.section}`}>
       <div className={styles.sectionHeader}>
@@ -66,6 +69,8 @@ function Section({ title, viewAllHref, loading, error, empty, testId, children }
         loadingTestId={`${testId}-loading`}
         errorTestId={`${testId}-error`}
         emptyTestId={`${testId}-empty`}
+        count={count}
+        countTestId={`${testId}-count`}
       >
         {children}
       </DataState>
@@ -83,6 +88,7 @@ function CuentasSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-cuentas"
     >
       <table className={shared.table}>
@@ -102,7 +108,9 @@ function CuentasSection({ usuarioId }: { usuarioId: number }) {
               </td>
               <td>{c.numero_cuenta}</td>
               <td>{c.tipo_cuenta}</td>
-              <td>{c.saldo}</td>
+              <td>
+                <Monto value={c.saldo} moneda={c.moneda} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -139,6 +147,7 @@ function TarjetasSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-tarjetas"
     >
       {actionError && (
@@ -216,6 +225,7 @@ function FacturasSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-facturas"
     >
       <table className={shared.table}>
@@ -234,7 +244,9 @@ function FacturasSection({ usuarioId }: { usuarioId: number }) {
                 <Link href={`/facturas/${f.id}`}>{f.id}</Link>
               </td>
               <td>{f.proveedor}</td>
-              <td>{f.monto}</td>
+              <td>
+                <Monto value={f.monto} />
+              </td>
               <td>
                 <span className={f.estado === "pagada" ? shared.badgeSuccess : f.estado === "vencida" ? shared.badgeDanger : shared.badgeWarning}>
                   {f.estado}
@@ -258,6 +270,7 @@ function OrdenesSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-ordenes"
     >
       <table className={shared.table}>
@@ -276,7 +289,9 @@ function OrdenesSection({ usuarioId }: { usuarioId: number }) {
                 <Link href={`/ordenes/${o.id}`}>{o.id}</Link>
               </td>
               <td>{o.producto}</td>
-              <td>{o.monto}</td>
+              <td>
+                <Monto value={o.monto} />
+              </td>
               <td>{o.estado}</td>
             </tr>
           ))}
@@ -314,6 +329,7 @@ function ReservasSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-reservas"
     >
       {actionError && (
@@ -415,6 +431,7 @@ function NotificacionesSection({ usuarioId }: { usuarioId: number }) {
       loading={isLoading}
       error={error}
       empty={(data?.length ?? 0) === 0}
+      count={data?.length ?? 0}
       testId="usuarios-notificaciones"
     >
       {actionError && (
@@ -564,15 +581,21 @@ function ResumenSection({ usuarioId }: { usuarioId: number }) {
           </div>
           <div className={styles.resumenStat}>
             <dt>Total</dt>
-            <dd>{data.total}</dd>
+            <dd>
+              <Monto value={data.total} />
+            </dd>
           </div>
           <div className={styles.resumenStat}>
             <dt>Primero</dt>
-            <dd>{data.primero ?? "—"}</dd>
+            <dd>
+              <Fecha value={data.primero} conHora />
+            </dd>
           </div>
           <div className={styles.resumenStat}>
             <dt>Último</dt>
-            <dd>{data.ultimo ?? "—"}</dd>
+            <dd>
+              <Fecha value={data.ultimo} conHora />
+            </dd>
           </div>
         </dl>
       )}
@@ -663,7 +686,9 @@ export default function UsuarioDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha de nacimiento</dt>
-                <dd>{usuario.fecha_nacimiento ?? "—"}</dd>
+                <dd>
+                  <Fecha value={usuario.fecha_nacimiento} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Dirección</dt>

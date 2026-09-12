@@ -23,7 +23,7 @@ export default function BeneficiariosV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-beneficiarios" title="Beneficiarios">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -41,6 +41,8 @@ export default function BeneficiariosV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(beneficiarios?.length ?? 0) === 0}
+        count={beneficiarios?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}

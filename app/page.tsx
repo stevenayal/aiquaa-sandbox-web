@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 import shared from "@/components/shared.module.css";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { useRosterEntry } from "@/lib/roster/useRosterEntry";
-import { getVisibleModules } from "@/components/Nav";
+import { useVisibleModules } from "@/components/Nav";
 import { ModuleIcon } from "@/components/icons/ModuleIcons";
 import { moduleTheme } from "@/lib/theme/moduleThemes";
 
@@ -17,13 +17,18 @@ export default function Home() {
   const { rosterEntry } = useRosterEntry(usuario?.email);
   const [buscarId, setBuscarId] = useState(usuario ? String(usuario.id) : "");
 
-  const visibleModules = getVisibleModules(rosterEntry);
+  const visibleModules = useVisibleModules(rosterEntry);
   const showBothCursos = visibleModules.v1.length > 0 && visibleModules.v2.length > 0;
   const nombre = rosterEntry?.nombre ?? usuario?.nombre;
 
+  // Sin módulos de curso 1 visibles la sesión es de curso 2: ahí "usuario" es
+  // un cliente del banco (/v2/usuarios/{id}), y el detalle de v1 solo podría
+  // dar 401/403 o mostrar otro registro con el mismo id.
+  const usuarioBase = visibleModules.v1.length > 0 ? "/usuarios" : "/v2/usuarios";
+
   function handleBuscarUsuario(event: FormEvent) {
     event.preventDefault();
-    if (buscarId.trim()) router.push(`/usuarios/${buscarId.trim()}`);
+    if (buscarId.trim()) router.push(`${usuarioBase}/${buscarId.trim()}`);
   }
 
   return (
@@ -33,7 +38,7 @@ export default function Home() {
 
       <form className={styles.search} onSubmit={handleBuscarUsuario} data-testid="home-buscar-usuario">
         <div className={shared.field}>
-          <label htmlFor="buscarId">Ir a usuario (id)</label>
+          <label htmlFor="buscarId">{usuarioBase === "/usuarios" ? "Ir a usuario (id)" : "Ir a cliente (id)"}</label>
           <input
             id="buscarId"
             value={buscarId}
@@ -48,23 +53,25 @@ export default function Home() {
       </form>
 
       {showBothCursos && <h2 className={styles.groupHeading}>Curso 1</h2>}
-      <nav className={styles.grid} aria-label="Módulos del curso 1">
-        {visibleModules.v1.map((m) => {
-          const theme = moduleTheme(m.key);
-          return (
-            <Link key={m.href} href={m.href} className={styles.tile} style={{ borderTopColor: theme.accent }}>
-              <span className={styles.tileIconWrap} style={{ background: theme.accent }}>
-                <ModuleIcon name={theme.icon} className={styles.tileIcon} />
-              </span>
-              <span className={styles.tileProduct} style={{ color: theme.accent }}>
-                {theme.productName}
-              </span>
-              <span className={styles.tileLabel}>{m.label}</span>
-              <span className={styles.tileTagline}>{theme.tagline}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      {visibleModules.v1.length > 0 && (
+        <nav className={styles.grid} aria-label="Módulos del curso 1">
+          {visibleModules.v1.map((m) => {
+            const theme = moduleTheme(m.key);
+            return (
+              <Link key={m.href} href={m.href} className={styles.tile} style={{ borderTopColor: theme.accent }}>
+                <span className={styles.tileIconWrap} style={{ background: theme.accent }}>
+                  <ModuleIcon name={theme.icon} className={styles.tileIcon} />
+                </span>
+                <span className={styles.tileProduct} style={{ color: theme.accent }}>
+                  {theme.productName}
+                </span>
+                <span className={styles.tileLabel}>{m.label}</span>
+                <span className={styles.tileTagline}>{theme.tagline}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       {showBothCursos && <h2 className={styles.groupHeading}>Curso 2 · Productos Bancarios</h2>}
       {visibleModules.v2.length > 0 && (

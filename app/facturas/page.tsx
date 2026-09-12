@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listFacturas, type FacturaEstado } from "@/lib/api/facturas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("facturas");
 const ESTADOS: FacturaEstado[] = ["pendiente", "pagada", "vencida"];
@@ -63,6 +64,8 @@ export default function FacturasPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(facturas?.length ?? 0) === 0}
+        count={facturas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -90,8 +93,12 @@ export default function FacturasPage() {
                 </td>
                 <td>{factura.proveedor}</td>
                 <td>{factura.numero_factura}</td>
-                <td>{factura.monto}</td>
-                <td>{factura.fecha_vencimiento}</td>
+                <td>
+                  <Monto value={factura.monto} />
+                </td>
+                <td>
+                  <Fecha value={factura.fecha_vencimiento} />
+                </td>
                 <td>
                   <span className={badgeClass(factura.estado)}>{factura.estado}</span>
                 </td>

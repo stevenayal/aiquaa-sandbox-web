@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listCuentasV2, type EstadoCuentaV2 } from "@/lib/api/v2/cuentas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("v2-cuentas");
 const ESTADOS: EstadoCuentaV2[] = ["activa", "bloqueada", "cerrada"];
@@ -32,7 +33,7 @@ export default function CuentasV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-cuentas" title="Cuentas">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -66,6 +67,8 @@ export default function CuentasV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(cuentas?.length ?? 0) === 0}
+        count={cuentas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -94,7 +97,9 @@ export default function CuentasV2Page() {
                 <td>{cuenta.numero_cuenta}</td>
                 <td>{cuenta.tipo_cuenta}</td>
                 <td>{cuenta.moneda}</td>
-                <td>{cuenta.saldo}</td>
+                <td>
+                  <Monto value={cuenta.saldo} moneda={cuenta.moneda} />
+                </td>
                 <td>
                   <span className={badgeClass(cuenta.estado)}>{cuenta.estado}</span>
                 </td>

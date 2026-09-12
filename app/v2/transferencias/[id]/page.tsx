@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { getTransferenciaV2, anularTransferenciaV2, type EstadoTransferenciaV2 } from "@/lib/api/v2/transferencias";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("v2-transferencias");
 
@@ -71,7 +72,9 @@ export default function TransferenciaV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{transferencia.monto}</dd>
+                <dd>
+                  <Monto value={transferencia.monto} moneda={transferencia.moneda} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Moneda</dt>
@@ -93,7 +96,9 @@ export default function TransferenciaV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Creada</dt>
-                <dd>{new Date(transferencia.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={transferencia.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

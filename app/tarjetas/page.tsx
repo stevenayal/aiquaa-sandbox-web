@@ -11,6 +11,7 @@ import { listTarjetas, bloquearTarjeta, activarTarjeta } from "@/lib/api/tarjeta
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("tarjetas");
 
@@ -80,6 +81,8 @@ export default function TarjetasPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(tarjetas?.length ?? 0) === 0}
+        count={tarjetas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -109,7 +112,9 @@ export default function TarjetasPage() {
                 <td>{tarjeta.tipo}</td>
                 <td>{tarjeta.marca}</td>
                 <td>{tarjeta.numero_enmascarado}</td>
-                <td>{tarjeta.saldo_actual}</td>
+                <td>
+                  <Monto value={tarjeta.saldo_actual} />
+                </td>
                 <td>
                   <span className={badgeClass(tarjeta.estado)}>{tarjeta.estado}</span>
                 </td>

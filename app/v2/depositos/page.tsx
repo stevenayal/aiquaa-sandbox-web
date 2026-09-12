@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listDepositosV2, type EstadoDepositoV2 } from "@/lib/api/v2/depositos";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto, Porcentaje } from "@/components/Valores";
 
 const ids = testIds("v2-depositos");
 const ESTADOS: EstadoDepositoV2[] = ["activo", "vencido", "cancelado"];
@@ -32,7 +33,7 @@ export default function DepositosV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-depositos" title="Depósitos">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -66,6 +67,8 @@ export default function DepositosV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(depositos?.length ?? 0) === 0}
+        count={depositos?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -92,10 +95,16 @@ export default function DepositosV2Page() {
                 <td>
                   <Link href={`/v2/usuarios/${deposito.usuario_id}`}>{deposito.usuario_id}</Link>
                 </td>
-                <td>{deposito.monto}</td>
-                <td>{deposito.tasa_anual}</td>
+                <td>
+                  <Monto value={deposito.monto} />
+                </td>
+                <td>
+                  <Porcentaje value={deposito.tasa_anual} />
+                </td>
                 <td>{deposito.plazo_dias}</td>
-                <td>{new Date(deposito.fecha_vencimiento).toLocaleDateString()}</td>
+                <td>
+                  <Fecha value={deposito.fecha_vencimiento} />
+                </td>
                 <td>{deposito.dias_restantes}</td>
                 <td>
                   <span className={badgeClass(deposito.estado)}>{deposito.estado}</span>

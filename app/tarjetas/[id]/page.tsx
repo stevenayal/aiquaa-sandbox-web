@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/tarjetas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("tarjetas");
 const TIPOS: TarjetaTipo[] = ["credito", "debito"];
@@ -95,11 +96,15 @@ export default function TarjetaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Límite de crédito</dt>
-                <dd>{tarjeta.limite_credito ?? "—"}</dd>
+                <dd>
+                  <Monto value={tarjeta.limite_credito} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Saldo actual</dt>
-                <dd>{tarjeta.saldo_actual}</dd>
+                <dd>
+                  <Monto value={tarjeta.saldo_actual} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -109,7 +114,9 @@ export default function TarjetaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha</dt>
-                <dd>{new Date(tarjeta.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={tarjeta.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

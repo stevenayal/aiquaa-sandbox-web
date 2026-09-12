@@ -87,6 +87,8 @@ export default function NotificacionesPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(notificaciones?.length ?? 0) === 0}
+        count={notificaciones?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}

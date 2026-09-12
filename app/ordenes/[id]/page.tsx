@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getOrden, actualizarOrden, eliminarOrden, type ItemOrdenInput } from "@/lib/api/ordenes";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("ordenes");
 
@@ -100,7 +101,9 @@ export default function OrdenDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{orden.monto}</dd>
+                <dd>
+                  <Monto value={orden.monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -123,7 +126,9 @@ export default function OrdenDetallePage() {
                     <td>{item.producto}</td>
                     <td>{item.cantidad}</td>
                     <td>{item.precio_unitario}</td>
-                    <td>{item.subtotal}</td>
+                    <td>
+                      <Monto value={item.subtotal} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

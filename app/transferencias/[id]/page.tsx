@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getTransferencia, actualizarTransferencia, eliminarTransferencia } from "@/lib/api/transferencias";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("transferencias");
 
@@ -97,7 +98,9 @@ export default function TransferenciaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{transferencia.monto}</dd>
+                <dd>
+                  <Monto value={transferencia.monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Descripción</dt>

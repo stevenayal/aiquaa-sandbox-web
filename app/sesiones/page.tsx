@@ -8,6 +8,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listSesiones } from "@/lib/api/sesiones";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("sesiones");
 
@@ -41,6 +42,8 @@ export default function SesionesPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(sesiones?.length ?? 0) === 0}
+        count={sesiones?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -72,7 +75,9 @@ export default function SesionesPage() {
                   </span>
                 </td>
                 <td>{sesion.ip ?? "—"}</td>
-                <td>{new Date(sesion.created_at).toLocaleString()}</td>
+                <td>
+                  <Fecha value={sesion.created_at} conHora />
+                </td>
               </tr>
             ))}
           </tbody>

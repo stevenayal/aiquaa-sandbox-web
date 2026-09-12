@@ -23,6 +23,7 @@ import {
 } from "@/lib/api/v2/cuentas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("v2-cuentas");
 const TIPOS: TipoCuentaV2[] = ["ahorro", "corriente"];
@@ -35,7 +36,7 @@ function badgeClass(estado: EstadoCuentaV2): string {
   return shared.badgeWarning;
 }
 
-function MovimientosSection({ cuentaId }: { cuentaId: number }) {
+function MovimientosSection({ cuentaId, moneda }: { cuentaId: number; moneda?: MonedaV2 }) {
   const { data: movimientos, error, isLoading, mutate } = useSWR(["v2-cuenta-movimientos", cuentaId], () =>
     listMovimientosCuentaV2(cuentaId),
   );
@@ -75,6 +76,8 @@ function MovimientosSection({ cuentaId }: { cuentaId: number }) {
         loadingTestId={`${ids.rowAction(cuentaId, "movimientos")}-loading`}
         errorTestId={`${ids.rowAction(cuentaId, "movimientos")}-error`}
         emptyTestId={`${ids.rowAction(cuentaId, "movimientos")}-empty`}
+        count={movimientos?.length ?? 0}
+        countTestId={`${ids.rowAction(cuentaId, "movimientos")}-count`}
       >
         <table className={shared.table} data-testid={ids.rowAction(cuentaId, "movimientos-list")}>
           <thead>
@@ -92,10 +95,16 @@ function MovimientosSection({ cuentaId }: { cuentaId: number }) {
                 <td>
                   <span className={m.tipo === "credito" ? shared.badgeSuccess : shared.badgeWarning}>{m.tipo}</span>
                 </td>
-                <td>{m.monto}</td>
-                <td>{m.saldo_posterior}</td>
+                <td>
+                  <Monto value={m.monto} moneda={moneda} />
+                </td>
+                <td>
+                  <Monto value={m.saldo_posterior} moneda={moneda} />
+                </td>
                 <td>{m.descripcion ?? "—"}</td>
-                <td>{new Date(m.created_at).toLocaleString()}</td>
+                <td>
+                  <Fecha value={m.created_at} conHora />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -247,7 +256,9 @@ export default function CuentaV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Saldo</dt>
-                <dd>{cuenta.saldo}</dd>
+                <dd>
+                  <Monto value={cuenta.saldo} moneda={cuenta.moneda} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -291,7 +302,7 @@ export default function CuentaV2DetallePage() {
               </button>
             </form>
 
-            <MovimientosSection cuentaId={id} />
+            <MovimientosSection cuentaId={id} moneda={cuenta.moneda} />
 
             <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.rowAction(id, "edit-form")}>
               <h2>Editar cuenta</h2>

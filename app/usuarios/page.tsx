@@ -31,6 +31,8 @@ export default function UsuariosPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(usuarios?.length ?? 0) === 0}
+        count={usuarios?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
