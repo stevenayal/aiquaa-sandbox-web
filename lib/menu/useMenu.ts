@@ -17,10 +17,10 @@ import { useRosterEntry } from "@/lib/roster/useRosterEntry";
 export function useMenu() {
   const { curso } = useCurso();
   const { usuario } = useUsuario();
-  const { rosterEntry, isLoading: rosterLoading } = useRosterEntry(usuario?.email);
+  const { rosterEntry, settled: rosterSettled } = useRosterEntry(usuario?.email);
 
   const grupo = rosterEntry && rosterEntry.curso === curso ? rosterEntry.grupo : null;
-  const ready = curso !== null && !rosterLoading;
+  const ready = curso !== null && rosterSettled;
 
   const { data, error, isLoading, mutate } = useSWR(
     ready ? ["menu", curso, grupo] : null,

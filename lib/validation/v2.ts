@@ -74,13 +74,18 @@ export function parseMonto(raw: string): number | null {
 
 /** Espejo de la API: monto > 0 con hasta 2 decimales (numeric(14,2)). `max` es regla de negocio visible. */
 export const monto =
-  ({ max, maxMessage, min }: { max?: number | null; maxMessage?: string; min?: number } = {}): Validator =>
+  ({
+    max,
+    maxMessage,
+    min,
+    minMessage,
+  }: { max?: number | null; maxMessage?: string; min?: number; minMessage?: string } = {}): Validator =>
   (value) => {
     if (!value.trim()) return "Ingresá un monto.";
     const n = parseMonto(value);
     if (n === null) return "Monto inválido: usá solo números, con hasta 2 decimales.";
     if (n <= 0) return "El monto debe ser mayor a 0.";
-    if (min !== undefined && n < min) return `El monto mínimo es ${min}.`;
+    if (min !== undefined && n < min) return minMessage ?? `El monto mínimo es ${min}.`;
     if (max !== undefined && max !== null && n > max) return maxMessage ?? `El monto no puede superar ${max}.`;
     return null;
   };
@@ -130,3 +135,16 @@ export const telefonoPy: Validator = (value) =>
 /** UI: número de cuenta de otro banco, entre 6 y 20 dígitos. */
 export const numeroCuenta: Validator = (value) =>
   /^\d{6,20}$/.test(value.trim()) ? null : "El número de cuenta tiene entre 6 y 20 dígitos, sin guiones.";
+
+/** UI: vencimiento de tarjeta (mes 1-12, año de 4 dígitos) posterior al mes actual y a 5 años como máximo. */
+export function vencimientoTarjeta(mes: string, anio: string, hoy = new Date()): string | null {
+  if (!mes || !anio) return "Elegí mes y año de vencimiento.";
+  const elegido = Number(anio) * 12 + Number(mes);
+  const actual = hoy.getFullYear() * 12 + hoy.getMonth() + 1;
+  if (elegido <= actual) return "El vencimiento tiene que ser posterior al mes actual.";
+  if (elegido > actual + 60) return "El vencimiento puede ser a 5 años como máximo.";
+  return null;
+}
+
+/** UI: límite de una tarjeta de crédito nueva, en guaraníes. */
+export const LIMITE_TARJETA = { min: 1_000_000, max: 100_000_000 } as const;

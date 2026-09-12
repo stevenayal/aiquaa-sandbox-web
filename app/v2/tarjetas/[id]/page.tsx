@@ -8,311 +8,249 @@ import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { DeleteButton } from "@/components/DeleteButton";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Fecha, Monto } from "@/components/Valores";
+import { ProgressBar } from "@/components/ProgressBar";
+import { Field, FormError } from "@/components/form/Field";
+import { MontoInput } from "@/components/form/MontoInput";
+import { useToast } from "@/components/Toast";
+import { TarjetaAcciones, TarjetaPlastico, VencimientoFields, estaVencida, mmaa, toneUso } from "@/components/v2/Tarjeta";
+import { Monto } from "@/components/Valores";
 import {
   getTarjetaV2,
   actualizarTarjetaV2,
   eliminarTarjetaV2,
-  bloquearTarjetaV2,
-  activarTarjetaV2,
   cambiarLimiteTarjetaV2,
-  type EstadoTarjetaV2,
   type MarcaTarjetaV2,
+  type TarjetaV2,
 } from "@/lib/api/v2/tarjetas";
-import { ApiError } from "@/lib/api/http";
+import { useFormState } from "@/lib/forms/useFormState";
+import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
+import { MARCA_LABEL, badgeFor, capitalizar } from "@/lib/v2/labels";
+import { porcentajeUso, ultimoDiaDelMes } from "@/lib/v2/reglas";
+import { monto, requerido, validarCampos, vencimientoTarjeta } from "@/lib/validation/v2";
 
 const ids = testIds("v2-tarjetas");
-const MARCAS: MarcaTarjetaV2[] = ["visa", "mastercard", "amex"];
+const limiteIds = testIds("v2-tarjetas-limite");
 
-function badgeClass(estado: EstadoTarjetaV2): string {
-  if (estado === "activa") return shared.badgeSuccess;
-  if (estado === "bloqueada") return shared.badgeDanger;
-  return shared.badgeWarning;
-}
-
-/**
- * Detalle de una tarjeta del curso 2. El listado ya resuelve bloquear /
- * activar / cambiar límite inline, pero `GET /v2/tarjetas/{id}` y su `PUT` no
- * tenían pantalla: sin esto no había forma de editar marca ni vencimiento, ni
- * de dar de baja una tarjeta desde la UI.
- */
 export default function TarjetaV2DetallePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const id = Number(params.id);
 
   const { data: tarjeta, error, isLoading, mutate } = useSWR(["v2-tarjeta", id], () => getTarjetaV2(id));
 
-  const [marca, setMarca] = useState<MarcaTarjetaV2>("visa");
-  const [fechaVencimiento, setFechaVencimiento] = useState("");
-  const [limiteCredito, setLimiteCredito] = useState("");
-  const [initialized, setInitialized] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [limiteSubmitting, setLimiteSubmitting] = useState(false);
-  const [estadoSubmitting, setEstadoSubmitting] = useState(false);
-  const [confirmBloquear, setConfirmBloquear] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-
-  if (tarjeta && !initialized) {
-    setMarca(tarjeta.marca);
-    // El backend devuelve la fecha completa; el input date pide yyyy-MM-dd.
-    setFechaVencimiento(tarjeta.fecha_vencimiento.slice(0, 10));
-    setLimiteCredito(tarjeta.limite_credito);
-    setInitialized(true);
+  async function actualizada(updated: TarjetaV2, mensaje: string) {
+    await mutate(updated, { revalidate: false });
+    toast.success(mensaje);
   }
+
+  return (
+    <div className={shared.page}>
+      <Link href="/v2/tarjetas" className={shared.backLink}>
+        ← Tarjetas
+      </Link>
+      <ModuleHeader
+        moduleKey="v2-tarjetas"
+        title={tarjeta ? `${MARCA_LABEL[tarjeta.marca]} ···· ${tarjeta.numero_enmascarado.slice(-4)}` : `Tarjeta #${id}`}
+      />
+
+      <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
+        {tarjeta && <Detalle tarjeta={tarjeta} onChanged={actualizada} onDeleted={() => router.push("/v2/tarjetas")} />}
+      </DataState>
+    </div>
+  );
+}
+
+function Detalle({
+  tarjeta,
+  onChanged,
+  onDeleted,
+}: {
+  tarjeta: TarjetaV2;
+  onChanged: (t: TarjetaV2, mensaje: string) => Promise<void>;
+  onDeleted: () => void;
+}) {
+  const toast = useToast();
+  const vencida = estaVencida(tarjeta);
+  const esCredito = tarjeta.tipo === "credito";
+  const limite = Number(tarjeta.limite_credito);
+  const utilizado = Number(tarjeta.saldo_utilizado);
+  const uso = porcentajeUso(utilizado, limite);
+
+  return (
+    <>
+      <div className={shared.twoColumns} data-testid={ids.detail}>
+        <div className={shared.section}>
+          <TarjetaPlastico
+            marca={tarjeta.marca}
+            tipo={tarjeta.tipo}
+            numero={tarjeta.numero_enmascarado}
+            vencimiento={mmaa(tarjeta.fecha_vencimiento)}
+            testId="v2-tarjetas-plastico"
+          />
+          <p>
+            <span className={badgeFor(vencida ? "vencida" : tarjeta.estado)} data-testid="v2-tarjetas-detail-estado" data-value={tarjeta.estado}>
+              {vencida ? "Vencida" : capitalizar(tarjeta.estado)}
+            </span>{" "}
+            · Titular <Link href={`/v2/usuarios/${tarjeta.usuario_id}`}>Cliente #{tarjeta.usuario_id}</Link>
+            {tarjeta.cuenta_id && (
+              <>
+                {" "}
+                · Cuenta <Link href={`/v2/cuentas/${tarjeta.cuenta_id}`}>#{tarjeta.cuenta_id}</Link>
+              </>
+            )}
+          </p>
+          <TarjetaAcciones tarjeta={tarjeta} onChanged={onChanged} />
+        </div>
+
+        {esCredito ? (
+          <div className={shared.section}>
+            <div className={shared.stats}>
+              <div className={shared.stat}>
+                <span className={shared.statLabel}>Disponible</span>
+                <span className={shared.statValue}>
+                  <Monto value={tarjeta.disponible} moneda="PYG" testId="v2-tarjetas-detail-disponible" />
+                </span>
+              </div>
+              <div className={shared.stat}>
+                <span className={shared.statLabel}>Límite</span>
+                <Monto value={tarjeta.limite_credito} moneda="PYG" testId="v2-tarjetas-detail-limite" />
+                <span className={shared.statLabel}>Utilizado</span>
+                <Monto value={tarjeta.saldo_utilizado} moneda="PYG" testId="v2-tarjetas-detail-utilizado" />
+              </div>
+            </div>
+            <ProgressBar value={uso} label="Uso del límite" tone={toneUso(uso)} testId="v2-tarjetas-detail-uso" />
+            <LimiteForm key={tarjeta.limite_credito} tarjeta={tarjeta} onChanged={onChanged} />
+          </div>
+        ) : (
+          <p className={shared.info} data-testid="v2-tarjetas-detail-sin-limite">
+            Tarjeta de débito: no tiene límite propio, las compras se debitan del saldo de la cuenta asociada.
+          </p>
+        )}
+      </div>
+
+      <EditarTarjetaForm key={`${tarjeta.marca}-${tarjeta.fecha_vencimiento}`} tarjeta={tarjeta} onChanged={onChanged} />
+
+      <DeleteButton
+        testId={ids.rowAction(tarjeta.id, "eliminar")}
+        title="¿Dar de baja esta tarjeta?"
+        description="La tarjeta deja de aparecer y no se puede volver a usar."
+        label="Dar de baja"
+        disabledReason={
+          utilizado > 0 ? `Tiene ${formatMonto(utilizado, "PYG")} utilizados: primero hay que cancelar la deuda.` : null
+        }
+        onDelete={() => eliminarTarjetaV2(tarjeta.id)}
+        onDeleted={() => {
+          toast.success("Tarjeta dada de baja.");
+          onDeleted();
+        }}
+      />
+    </>
+  );
+}
+
+function LimiteForm({ tarjeta, onChanged }: { tarjeta: TarjetaV2; onChanged: (t: TarjetaV2, mensaje: string) => Promise<void> }) {
+  const [submitting, setSubmitting] = useState(false);
+  const utilizado = Number(tarjeta.saldo_utilizado);
+  const bloqueada = tarjeta.estado !== "activa" || estaVencida(tarjeta);
+  const form = useFormState({
+    initial: { limiteCredito: Number(tarjeta.limite_credito).toFixed(2) },
+    ids: limiteIds,
+    idPrefix: "limite-",
+    validate: (v) =>
+      validarCampos(v, {
+        // Espejo de la API: el límite no puede quedar por debajo de lo ya utilizado.
+        limiteCredito: [
+          monto({
+            min: utilizado,
+            minMessage: `El límite no puede ser menor al saldo utilizado (${formatMonto(utilizado, "PYG")}).`,
+          }),
+        ],
+      }),
+  });
+  const sinCambios = Number(form.values.limiteCredito) === Number(tarjeta.limite_credito);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!form.validateFields()) return;
     setSubmitting(true);
-    setFormError(null);
     try {
-      const updated = await actualizarTarjetaV2(id, { marca, fechaVencimiento });
-      await mutate(updated, { revalidate: false });
+      const updated = await cambiarLimiteTarjetaV2(tarjeta.id, Number(form.values.limiteCredito));
+      await onChanged(updated, `Límite actualizado a ${formatMonto(updated.limite_credito, "PYG")}.`);
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "No se pudo actualizar la tarjeta.");
+      form.applyApiError(err, [{ field: "limiteCredito", when: (e) => e.message.includes("límite") }], "No se pudo cambiar el límite.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={limiteIds.form}>
+      <h2>Cambiar límite</h2>
+      <Field
+        form={form}
+        name="limiteCredito"
+        label="Nuevo límite"
+        hint={bloqueada ? "Solo se puede cambiar el límite de una tarjeta activa." : `Mínimo: lo utilizado (${formatMonto(utilizado, "PYG")}).`}
+      >
+        <MontoInput {...form.controlProps("limiteCredito", { hint: true })} moneda="PYG" disabled={bloqueada} />
+      </Field>
+      <FormError form={form} />
+      <button type="submit" className={shared.button} disabled={submitting || sinCambios || bloqueada} data-testid={limiteIds.submit}>
+        {submitting ? "Guardando..." : "Cambiar límite"}
+      </button>
+    </form>
+  );
+}
+
+function EditarTarjetaForm({ tarjeta, onChanged }: { tarjeta: TarjetaV2; onChanged: (t: TarjetaV2, mensaje: string) => Promise<void> }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [anio, mes] = tarjeta.fecha_vencimiento.slice(0, 10).split("-");
+  const form = useFormState({
+    initial: { marca: tarjeta.marca as string, vencMes: mes, vencAnio: anio },
+    ids,
+    idPrefix: "edit-",
+    validate: (v) => ({
+      ...validarCampos(v, { marca: [requerido("Elegí la marca.")] }),
+      ...(vencimientoTarjeta(v.vencMes, v.vencAnio) ? { vencAnio: vencimientoTarjeta(v.vencMes, v.vencAnio)! } : {}),
+      ...(tarjeta.tipo === "debito" && v.marca === "amex" ? { marca: "American Express no emite tarjetas de débito." } : {}),
+    }),
+  });
+  const sinCambios = form.values.marca === tarjeta.marca && form.values.vencMes === mes && form.values.vencAnio === anio;
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!form.validateFields()) return;
+    setSubmitting(true);
+    try {
+      const updated = await actualizarTarjetaV2(tarjeta.id, {
+        marca: form.values.marca as MarcaTarjetaV2,
+        fechaVencimiento: ultimoDiaDelMes(Number(form.values.vencAnio), Number(form.values.vencMes)),
+      });
+      await onChanged(updated, "Datos de la tarjeta actualizados.");
+    } catch (err) {
+      form.applyApiError(err, [], "No se pudo actualizar la tarjeta.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleLimite(event: FormEvent) {
-    event.preventDefault();
-    setLimiteSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const updated = await cambiarLimiteTarjetaV2(id, Number(limiteCredito));
-      await mutate(updated, { revalidate: false });
-      setActionSuccess("Límite actualizado.");
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo cambiar el límite.");
-    } finally {
-      setLimiteSubmitting(false);
-    }
-  }
-
-  async function handleEstado(action: "bloquear" | "activar") {
-    setEstadoSubmitting(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const updated = await (action === "bloquear" ? bloquearTarjetaV2(id) : activarTarjetaV2(id));
-      await mutate(updated, { revalidate: false });
-      setActionSuccess(action === "bloquear" ? "Tarjeta bloqueada." : "Tarjeta activada.");
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la tarjeta.");
-    } finally {
-      setEstadoSubmitting(false);
-    }
-  }
-
   return (
-    <div className={shared.page}>
-      <ModuleHeader moduleKey="v2-tarjetas" title={`Tarjeta #${id}`} />
-
-      {actionError && (
-        <p role="alert" className={shared.fieldError}>
-          {actionError}
-        </p>
-      )}
-      {actionSuccess && (
-        <p role="status" className={shared.success} data-testid={ids.success}>
-          {actionSuccess}
-        </p>
-      )}
-
-      <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
-        {tarjeta && (
-          <>
-            <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
-              <div className={shared.detailField}>
-                <dt>Cliente</dt>
-                <dd>
-                  <Link href={`/v2/usuarios/${tarjeta.usuario_id}`}>{tarjeta.usuario_id}</Link>
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Cuenta</dt>
-                <dd>
-                  {tarjeta.cuenta_id !== null ? (
-                    <Link href={`/v2/cuentas/${tarjeta.cuenta_id}`}>{tarjeta.cuenta_id}</Link>
-                  ) : (
-                    "—"
-                  )}
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Tipo</dt>
-                <dd>{tarjeta.tipo}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Marca</dt>
-                <dd>{tarjeta.marca}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Número</dt>
-                <dd>{tarjeta.numero_enmascarado}</dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Límite de crédito</dt>
-                <dd>
-                  <Monto value={tarjeta.limite_credito} />
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Utilizado</dt>
-                <dd>
-                  <Monto value={tarjeta.saldo_utilizado} />
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Disponible</dt>
-                <dd>
-                  <Monto value={tarjeta.disponible} />
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Estado</dt>
-                <dd>
-                  <span className={badgeClass(tarjeta.estado)}>{tarjeta.estado}</span>
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Vencimiento</dt>
-                <dd>
-                  <Fecha value={tarjeta.fecha_vencimiento} />
-                </dd>
-              </div>
-              <div className={shared.detailField}>
-                <dt>Alta</dt>
-                <dd>
-                  <Fecha value={tarjeta.created_at} conHora />
-                </dd>
-              </div>
-            </dl>
-
-            <div className={`${shared.card} ${shared.rowActions}`}>
-              <button
-                type="button"
-                className={shared.buttonSecondary}
-                disabled={tarjeta.estado !== "activa" || estadoSubmitting}
-                onClick={() => setConfirmBloquear(true)}
-                data-testid={ids.rowAction(id, "bloquear")}
-              >
-                {estadoSubmitting ? "Actualizando..." : "Bloquear"}
-              </button>
-              <button
-                type="button"
-                className={shared.buttonSecondary}
-                disabled={tarjeta.estado !== "bloqueada" || estadoSubmitting}
-                onClick={() => handleEstado("activar")}
-                data-testid={ids.rowAction(id, "activar")}
-              >
-                {estadoSubmitting ? "Actualizando..." : "Activar"}
-              </button>
-            </div>
-
-            <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.rowAction(id, "edit-form")}>
-              <h2>Editar tarjeta</h2>
-              <div className={shared.field}>
-                <label htmlFor="marca">Marca</label>
-                <select
-                  id="marca"
-                  value={marca}
-                  onChange={(e) => setMarca(e.target.value as MarcaTarjetaV2)}
-                  data-testid={ids.field("edit-marca")}
-                >
-                  {MARCAS.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className={shared.field}>
-                <label htmlFor="fechaVencimiento">Vencimiento</label>
-                <input
-                  id="fechaVencimiento"
-                  type="date"
-                  required
-                  value={fechaVencimiento}
-                  onChange={(e) => setFechaVencimiento(e.target.value)}
-                  data-testid={ids.field("edit-fechaVencimiento")}
-                />
-              </div>
-
-              {formError && (
-                <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("edit-marca")}>
-                  {formError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className={shared.button}
-                disabled={submitting}
-                data-testid={ids.rowAction(id, "edit-submit")}
-              >
-                {submitting ? "Guardando..." : "Guardar cambios"}
-              </button>
-            </form>
-
-            {tarjeta.tipo === "credito" && (
-              <form className={shared.formGrid} onSubmit={handleLimite} data-testid={ids.rowAction(id, "limite-form")}>
-                <h2>Cambiar límite</h2>
-                <div className={shared.field}>
-                  <label htmlFor="limiteCredito">Límite de crédito</label>
-                  <input
-                    id="limiteCredito"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    value={limiteCredito}
-                    onChange={(e) => setLimiteCredito(e.target.value)}
-                    data-testid={ids.field("limite")}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className={shared.button}
-                  disabled={limiteSubmitting}
-                  data-testid={ids.rowAction(id, "limite")}
-                >
-                  {limiteSubmitting ? "Actualizando..." : "Cambiar límite"}
-                </button>
-              </form>
-            )}
-
-            <DeleteButton
-              testId={ids.rowAction(id, "eliminar")}
-              title="¿Eliminar esta tarjeta?"
-              description="Se marcará como inactiva y dejará de listarse."
-              label="Eliminar tarjeta"
-              onDelete={() => eliminarTarjetaV2(id)}
-              onDeleted={() => router.push("/v2/tarjetas")}
-            />
-          </>
-        )}
-      </DataState>
-
-      <ConfirmDialog
-        open={confirmBloquear}
-        title="¿Bloquear esta tarjeta?"
-        description="La tarjeta dejará de poder usarse hasta que la actives de nuevo."
-        confirmLabel="Bloquear"
-        danger
-        testId={ids.rowAction(id, "bloquear")}
-        onCancel={() => setConfirmBloquear(false)}
-        onConfirm={() => {
-          setConfirmBloquear(false);
-          handleEstado("bloquear");
-        }}
-      />
-    </div>
+    <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={ids.rowAction(tarjeta.id, "edit-form")}>
+      <h2>Renovación</h2>
+      <p className={shared.hint}>Cambiá la marca o extendé el vencimiento (reimpresión del plástico).</p>
+      <Field form={form} name="marca" label="Marca">
+        <select {...form.fieldProps("marca")}>
+          <option value="visa">{MARCA_LABEL.visa}</option>
+          <option value="mastercard">{MARCA_LABEL.mastercard}</option>
+          <option value="amex">{MARCA_LABEL.amex}</option>
+        </select>
+      </Field>
+      <VencimientoFields form={form} />
+      <FormError form={form} />
+      <button type="submit" className={shared.button} disabled={submitting || sinCambios} data-testid={ids.rowAction(tarjeta.id, "edit-submit")}>
+        {submitting ? "Guardando..." : "Guardar cambios"}
+      </button>
+    </form>
   );
 }

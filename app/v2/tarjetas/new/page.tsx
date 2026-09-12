@@ -1,137 +1,189 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import shared from "@/components/shared.module.css";
 import { ModuleHeader } from "@/components/ModuleHeader";
-import { emitirTarjetaV2, type TipoTarjetaV2, type MarcaTarjetaV2 } from "@/lib/api/v2/tarjetas";
-import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
-import { ApiError } from "@/lib/api/http";
+import { Field, FormError } from "@/components/form/Field";
+import { MontoInput } from "@/components/form/MontoInput";
+import { CheckboxField, RadioCards } from "@/components/form/RadioCards";
+import { useToast } from "@/components/Toast";
+import { ClienteSelect, CuentaSelect } from "@/components/v2/EntitySelects";
+import { TarjetaPlastico, VencimientoFields } from "@/components/v2/Tarjeta";
+import { emitirTarjetaV2, type MarcaTarjetaV2, type TipoTarjetaV2 } from "@/lib/api/v2/tarjetas";
+import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { useFormState } from "@/lib/forms/useFormState";
+import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
+import { MARCA_LABEL } from "@/lib/v2/labels";
+import { ultimoDiaDelMes } from "@/lib/v2/reglas";
+import { useClientesV2, useCuentasCliente } from "@/lib/v2/useEntidadesCliente";
+import { LIMITE_TARJETA, monto, requerido, validarCampos, vencimientoTarjeta } from "@/lib/validation/v2";
 
 const ids = testIds("v2-tarjetas");
-const TIPOS: TipoTarjetaV2[] = ["credito", "debito"];
-const MARCAS: MarcaTarjetaV2[] = ["visa", "mastercard", "amex"];
 
 export default function NuevaTarjetaV2Page() {
   const router = useRouter();
-  const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
-  const [cuentaId, setCuentaId] = useState("");
-  const [tipo, setTipo] = useState<TipoTarjetaV2>("credito");
-  const [marca, setMarca] = useState<MarcaTarjetaV2>("visa");
-  const [limiteCredito, setLimiteCredito] = useState("");
-  const [fechaVencimiento, setFechaVencimiento] = useState("");
+  const toast = useToast();
+  const searchParams = useSearchParams();
+  const { usuario } = useUsuario();
+  const { clientes, isLoading: clientesLoading } = useClientesV2();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const vencPorDefecto = new Date();
+  const form = useFormState({
+    initial: {
+      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      tipo: "credito",
+      marca: "visa",
+      cuentaId: "",
+      limiteCredito: "",
+      vencMes: String(vencPorDefecto.getMonth() + 1).padStart(2, "0"),
+      vencAnio: String(vencPorDefecto.getFullYear() + 4),
+      declaracion: "",
+    },
+    ids,
+    validate: (v) => ({
+      ...validarCampos(v, {
+        usuarioId: [requerido("Elegí el titular.")],
+        // UI: débito siempre va asociada a una cuenta (la API la acepta sin cuenta).
+        cuentaId: v.tipo === "debito" ? [requerido("Una tarjeta de débito tiene que estar asociada a una cuenta.")] : [],
+        // UI: rango de límite para tarjetas nuevas. La API acepta cualquier número >= 0.
+        limiteCredito:
+          v.tipo === "credito"
+            ? [
+                monto({
+                  min: LIMITE_TARJETA.min,
+                  max: LIMITE_TARJETA.max,
+                  minMessage: `El límite mínimo es ${formatMonto(LIMITE_TARJETA.min, "PYG")}.`,
+                  maxMessage: `El límite máximo es ${formatMonto(LIMITE_TARJETA.max, "PYG")}.`,
+                }),
+              ]
+            : [],
+        declaracion: [requerido("Tenés que aceptar las condiciones de uso de la tarjeta.")],
+      }),
+      ...(vencimientoTarjeta(v.vencMes, v.vencAnio) ? { vencAnio: vencimientoTarjeta(v.vencMes, v.vencAnio)! } : {}),
+      // UI: American Express solo emite crédito.
+      ...(v.tipo === "debito" && v.marca === "amex" ? { marca: "American Express no emite tarjetas de débito." } : {}),
+    }),
+  });
+
+  const { cuentas, isLoading: cuentasLoading } = useCuentasCliente(form.values.usuarioId);
+  const cuentasActivas = cuentas.filter((c) => c.estado === "activa");
+  const titularNombre = clientes.find((c) => String(c.id) === form.values.usuarioId)?.nombre;
+  const esCredito = form.values.tipo === "credito";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!form.validateFields()) return;
     setSubmitting(true);
-    setError(null);
+    const { values } = form;
     try {
-      await emitirTarjetaV2({
-        usuarioId: Number(usuarioId),
-        cuentaId: cuentaId.trim() ? Number(cuentaId) : undefined,
-        tipo,
-        marca,
-        limiteCredito: limiteCredito.trim() ? Number(limiteCredito) : undefined,
-        fechaVencimiento,
+      const tarjeta = await emitirTarjetaV2({
+        usuarioId: Number(values.usuarioId),
+        cuentaId: values.cuentaId ? Number(values.cuentaId) : undefined,
+        tipo: values.tipo as TipoTarjetaV2,
+        marca: values.marca as MarcaTarjetaV2,
+        limiteCredito: esCredito ? Number(values.limiteCredito) : undefined,
+        fechaVencimiento: ultimoDiaDelMes(Number(values.vencAnio), Number(values.vencMes)),
       });
-      router.push("/v2/tarjetas");
+      toast.success(`Tarjeta ${MARCA_LABEL[tarjeta.marca]} ···· ${tarjeta.numero_enmascarado.slice(-4)} emitida.`);
+      router.push(`/v2/tarjetas/${tarjeta.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo emitir la tarjeta.");
-    } finally {
+      form.applyApiError(
+        err,
+        [{ field: "vencAnio", when: (e) => e.message.includes("YYYY-MM-DD"), message: "Fecha de vencimiento inválida." }],
+        "No se pudo emitir la tarjeta.",
+      );
       setSubmitting(false);
     }
   }
 
   return (
     <div className={shared.page}>
-      <ModuleHeader moduleKey="v2-tarjetas" title="Emitir tarjeta" />
+      <ModuleHeader moduleKey="v2-tarjetas" title="Solicitar tarjeta" />
 
-      <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
-        <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
-          <input
-            id="usuarioId"
-            required
-            value={usuarioId}
-            onChange={(e) => setUsuarioId(e.target.value)}
-            data-testid={ids.field("usuarioId")}
+      <div className={shared.twoColumns}>
+        <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={ids.form}>
+          <Field form={form} name="usuarioId" label="Titular">
+            <ClienteSelect {...form.fieldProps("usuarioId")} items={clientes} isLoading={clientesLoading} />
+          </Field>
+
+          <RadioCards
+            form={form}
+            name="tipo"
+            legend="Tipo de tarjeta"
+            options={[
+              { value: "credito", label: "Crédito", description: "Con límite propio, se paga a fin de mes." },
+              { value: "debito", label: "Débito", description: "Usa el saldo de una cuenta." },
+            ]}
           />
-        </div>
 
-        <div className={shared.field}>
-          <label htmlFor="cuentaId">cuentaId (opcional)</label>
-          <input
-            id="cuentaId"
-            value={cuentaId}
-            onChange={(e) => setCuentaId(e.target.value)}
-            data-testid={ids.field("cuentaId")}
+          <RadioCards
+            form={form}
+            name="marca"
+            legend="Marca"
+            options={[
+              { value: "visa", label: MARCA_LABEL.visa },
+              { value: "mastercard", label: MARCA_LABEL.mastercard },
+              { value: "amex", label: MARCA_LABEL.amex, description: "Solo crédito." },
+            ]}
           />
-        </div>
 
-        <div className={shared.field}>
-          <label htmlFor="tipo">Tipo</label>
-          <select id="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoTarjetaV2)} data-testid={ids.field("tipo")}>
-            {TIPOS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
+          <Field
+            form={form}
+            name="cuentaId"
+            label={esCredito ? "Cuenta para débito automático (opcional)" : "Cuenta asociada"}
+            hint={!cuentasLoading && cuentasActivas.length === 0 && form.values.usuarioId ? "El titular no tiene cuentas activas." : undefined}
+          >
+            <CuentaSelect
+              {...form.fieldProps("cuentaId", { hint: !cuentasLoading && cuentasActivas.length === 0 && Boolean(form.values.usuarioId) })}
+              items={cuentasActivas}
+              isLoading={cuentasLoading}
+              placeholder={esCredito ? "Sin cuenta" : "Elegí una cuenta"}
+            />
+          </Field>
 
-        <div className={shared.field}>
-          <label htmlFor="marca">Marca</label>
-          <select id="marca" value={marca} onChange={(e) => setMarca(e.target.value as MarcaTarjetaV2)} data-testid={ids.field("marca")}>
-            {MARCAS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+          {esCredito ? (
+            <Field
+              form={form}
+              name="limiteCredito"
+              label="Límite de crédito"
+              hint={`Entre ${formatMonto(LIMITE_TARJETA.min, "PYG")} y ${formatMonto(LIMITE_TARJETA.max, "PYG")}.`}
+            >
+              <MontoInput {...form.controlProps("limiteCredito", { hint: true })} moneda="PYG" />
+            </Field>
+          ) : (
+            <p className={shared.info} data-testid={ids.hint("limiteCredito")}>
+              Las tarjetas de débito no tienen límite: se emiten con límite 0 y usan el saldo de la cuenta.
+            </p>
+          )}
 
-        <div className={shared.field}>
-          <label htmlFor="limiteCredito">Límite de crédito (opcional)</label>
-          <input
-            id="limiteCredito"
-            type="number"
-            min="0"
-            step="0.01"
-            value={limiteCredito}
-            onChange={(e) => setLimiteCredito(e.target.value)}
-            data-testid={ids.field("limiteCredito")}
+          <VencimientoFields form={form} />
+
+          <CheckboxField form={form} name="declaracion">
+            Acepto las condiciones de uso de la tarjeta y el costo de emisión.
+          </CheckboxField>
+
+          <FormError form={form} />
+
+          <button type="submit" className={shared.button} disabled={submitting} data-testid={ids.submit}>
+            {submitting ? "Emitiendo..." : "Emitir tarjeta"}
+          </button>
+        </form>
+
+        <aside className={shared.section} aria-label="Vista previa">
+          <TarjetaPlastico
+            marca={form.values.marca as MarcaTarjetaV2}
+            tipo={form.values.tipo as TipoTarjetaV2}
+            numero="**** **** **** ····"
+            titular={titularNombre}
+            vencimiento={form.values.vencMes && form.values.vencAnio ? `${form.values.vencMes}/${form.values.vencAnio.slice(2)}` : "MM/AA"}
+            testId="v2-tarjetas-preview"
           />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="fechaVencimiento">Fecha de vencimiento</label>
-          <input
-            id="fechaVencimiento"
-            type="date"
-            required
-            value={fechaVencimiento}
-            onChange={(e) => setFechaVencimiento(e.target.value)}
-            data-testid={ids.field("fechaVencimiento")}
-          />
-        </div>
-
-        <p style={{ color: "var(--color-text-muted)", fontSize: "0.9em" }}>
-          Una tarjeta de débito siempre nace con límite 0, sin importar lo que se indique arriba.
-        </p>
-
-        {error && (
-          <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("usuarioId")}>
-            {error}
-          </p>
-        )}
-
-        <button type="submit" className={shared.button} disabled={submitting} data-testid={ids.submit}>
-          {submitting ? "Emitiendo..." : "Emitir tarjeta"}
-        </button>
-      </form>
+          <p className={shared.hint}>El número se genera al emitir la tarjeta.</p>
+        </aside>
+      </div>
     </div>
   );
 }
