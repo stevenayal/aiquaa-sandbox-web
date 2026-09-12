@@ -3,68 +3,83 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApiKey } from "./ApiKeyContext";
-import { DEMO_MODE } from "./demoMode";
+import { useCurso, type Curso } from "./CursoContext";
+import { DEMO_CURSO_1, DEMO_CURSO_2 } from "./demoMode";
 import { useUsuario } from "./UsuarioContext";
 import { Nav } from "@/components/Nav";
 
+const CURSO_ROUTE = "/curso";
 const API_KEY_ROUTE = "/login";
 const USUARIO_ROUTE = "/auth/login";
+const GATE_ROUTES = [CURSO_ROUTE, API_KEY_ROUTE, USUARIO_ROUTE];
 
-// Si el servidor tiene una key demo configurada (de cualquiera de los dos
-// cursos), capa 1 (apiKey) deja de pedirse: el proxy la inyecta solo,
-// server-side. /login sigue existiendo por si alguien quiere pisarla con su
-// propia key personal.
+// Si el servidor tiene una key demo para el curso elegido, capa 1 (apiKey)
+// deja de pedirse: el proxy la inyecta solo, server-side. /login sigue
+// existiendo por si alguien quiere pisarla con su propia key personal.
 
-type Phase = "loading" | "need-api-key" | "need-usuario" | "authenticated";
+type Phase = "loading" | "need-curso" | "need-api-key" | "need-usuario" | "authenticated";
 
-// El módulo usuarios ES el bootstrap para conseguir un usuarioId (sección 8
-// del plan: "usuarios primero, antes de todo lo demás") — tiene que poder
-// usarse con solo la capa 1 (apiKey), antes de tener un usuario de negocio
-// logueado en capa 2.
-function isUsuarioBootstrapRoute(pathname: string): boolean {
-  return pathname === "/usuarios" || pathname.startsWith("/usuarios/");
+// El alta de usuarios/clientes ES el bootstrap para conseguir un usuarioId
+// (sección 8 del plan: "usuarios primero, antes de todo lo demás") — tiene
+// que poder usarse con solo la capa 1 (apiKey), antes de tener un usuario de
+// negocio logueado en capa 2. Cada curso tiene el suyo.
+function isUsuarioBootstrapRoute(pathname: string, curso: Curso | null): boolean {
+  const base = curso === 2 ? "/v2/usuarios" : "/usuarios";
+  return pathname === base || pathname.startsWith(`${base}/`);
 }
 
 /**
  * Guard client-side (no puede vivir en middleware.ts: no hay acceso a
- * localStorage en el servidor). Capa 1 (apiKey) manda sobre capa 2 (usuario).
+ * localStorage en el servidor). Las capas se piden en orden: curso → API key
+ * de ese curso → usuario de negocio.
  */
 export function AuthGuard({ children }: { children: ReactNode }) {
-  // Cualquiera de las dos keys alcanza para entrar: un alumno del curso 2
-  // solo tiene key de curso 2, y sus módulos (/v2/**) son los únicos que va a
-  // usar. El Nav decide qué se ve a partir de eso (ver getVisibleModules).
+  const { curso, loading: cursoLoading } = useCurso();
   const { apiKey, apiKeyV2, loading: apiKeyLoading } = useApiKey();
   const { usuario, loading: usuarioLoading } = useUsuario();
   const pathname = usePathname();
   const router = useRouter();
 
-  const phase: Phase =
-    apiKeyLoading || usuarioLoading
-      ? "loading"
-      : !apiKey && !apiKeyV2 && !DEMO_MODE
-        ? "need-api-key"
-        : !usuario
-          ? "need-usuario"
-          : "authenticated";
+  // Solo cuenta la key del curso elegido: una key de curso 1 en v2 da 403, y
+  // al revés el curso 1 no tiene sentido con la cohorte del curso 2.
+  const tieneKey = curso === 2 ? Boolean(apiKeyV2) || DEMO_CURSO_2 : Boolean(apiKey) || DEMO_CURSO_1;
 
-  const usuarioGateBypassed = phase === "need-usuario" && isUsuarioBootstrapRoute(pathname);
+  const phase: Phase =
+    cursoLoading || apiKeyLoading || usuarioLoading
+      ? "loading"
+      : curso === null
+        ? "need-curso"
+        : !tieneKey
+          ? "need-api-key"
+          : !usuario
+            ? "need-usuario"
+            : "authenticated";
+
+  const usuarioGateBypassed = phase === "need-usuario" && isUsuarioBootstrapRoute(pathname, curso);
 
   useEffect(() => {
-    if (phase === "need-api-key" && pathname !== API_KEY_ROUTE) {
+    if (phase === "need-curso" && pathname !== CURSO_ROUTE) {
+      router.replace(CURSO_ROUTE);
+    } else if (phase === "need-api-key" && pathname !== API_KEY_ROUTE) {
       router.replace(API_KEY_ROUTE);
-    } else if (phase === "need-usuario" && pathname !== USUARIO_ROUTE && !isUsuarioBootstrapRoute(pathname)) {
+    } else if (
+      phase === "need-usuario" &&
+      pathname !== USUARIO_ROUTE &&
+      !isUsuarioBootstrapRoute(pathname, curso)
+    ) {
       router.replace(USUARIO_ROUTE);
-    } else if (phase === "authenticated" && (pathname === API_KEY_ROUTE || pathname === USUARIO_ROUTE)) {
+    } else if (phase === "authenticated" && GATE_ROUTES.includes(pathname)) {
       router.replace("/");
     }
-  }, [phase, pathname, router]);
+  }, [phase, pathname, router, curso]);
 
   if (phase === "loading") return null;
+  if (phase === "need-curso") return pathname === CURSO_ROUTE ? <>{children}</> : null;
   if (phase === "need-api-key") return pathname === API_KEY_ROUTE ? <>{children}</> : null;
   if (phase === "need-usuario" && !usuarioGateBypassed) {
     return pathname === USUARIO_ROUTE ? <>{children}</> : null;
   }
-  if (pathname === API_KEY_ROUTE || pathname === USUARIO_ROUTE) return null;
+  if (GATE_ROUTES.includes(pathname)) return null;
 
   return (
     <>

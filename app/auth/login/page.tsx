@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
-import { useApiKey } from "@/lib/auth/ApiKeyContext";
-import { DEMO_CURSO_1 } from "@/lib/auth/demoMode";
+import { useCurso } from "@/lib/auth/CursoContext";
 import { login, loginV2, forgotPassword, resetPassword } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/http";
 import { normalizeEmail } from "@/lib/format";
@@ -17,13 +16,13 @@ const forgotIds = testIds("auth-forgot");
 
 export default function AuthLoginPage() {
   const { setUsuario } = useUsuario();
-  const { apiKey } = useApiKey();
+  const { curso } = useCurso();
   const router = useRouter();
 
-  // Un alumno del curso 2 no tiene key de curso 1, y los usuarios de negocio
-  // de v1 viven en otro schema: su capa 2 es el cliente del banco (v2), y las
-  // pantallas de recuperar acceso (endpoints de v1) no le aplican.
-  const soloCurso2 = !apiKey && !DEMO_CURSO_1;
+  // Los usuarios de negocio de v1 viven en otro schema: en el curso 2 la capa
+  // 2 es el cliente del banco (v2), y las pantallas de recuperar acceso
+  // (endpoints de v1) no le aplican.
+  const soloCurso2 = curso === 2;
 
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);

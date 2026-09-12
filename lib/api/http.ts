@@ -95,7 +95,7 @@ interface ErrorEnvelope {
   error: { code: ApiErrorCode; message: string; details?: unknown };
 }
 
-function parseEnvelope<T>(text: string): Partial<SuccessEnvelope<T> & ErrorEnvelope> {
+export function parseEnvelope<T>(text: string): Partial<SuccessEnvelope<T> & ErrorEnvelope> {
   try {
     return text ? (JSON.parse(text) as Partial<SuccessEnvelope<T> & ErrorEnvelope>) : {};
   } catch {
@@ -105,7 +105,7 @@ function parseEnvelope<T>(text: string): Partial<SuccessEnvelope<T> & ErrorEnvel
   }
 }
 
-function errorFrom(json: Partial<ErrorEnvelope>, status: number): ApiError {
+export function errorFrom(json: Partial<ErrorEnvelope>, status: number): ApiError {
   const error = json.error;
   return new ApiError(
     error?.code ?? "INTERNAL_ERROR",

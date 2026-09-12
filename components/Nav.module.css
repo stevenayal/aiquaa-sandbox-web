@@ -29,6 +29,18 @@
   }
 }
 
+.brandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.cursoLabel {
+  font-size: 0.7em;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .links {
   display: flex;
   flex: 1;
@@ -42,6 +54,18 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
+}
+
+.section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section + .section {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border);
 }
 
 .rowLabel {
@@ -67,6 +91,54 @@
 
 .link:hover {
   color: var(--color-text);
+}
+
+.linkActive {
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+/* Placeholder mientras llega GET /api/menu: mismo alto que un link, para que
+   el nav no salte cuando aparecen los módulos. */
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+}
+
+.skeleton {
+  width: 96px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-border);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.menuError {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  color: var(--color-danger);
+  font-size: 0.9em;
+}
+
+.retry {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
 }
 
 .session {
