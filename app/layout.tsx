@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ApiKeyProvider } from "@/lib/auth/ApiKeyContext";
+import { CursoProvider } from "@/lib/auth/CursoContext";
 import { UsuarioProvider } from "@/lib/auth/UsuarioContext";
 import { AuthGuard } from "@/lib/auth/AuthGuard";
+import { ToastProvider } from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,11 +26,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <ApiKeyProvider>
-          <UsuarioProvider>
-            <AuthGuard>{children}</AuthGuard>
-          </UsuarioProvider>
-        </ApiKeyProvider>
+        <CursoProvider>
+          <ApiKeyProvider>
+            <UsuarioProvider>
+              <ToastProvider>
+                <AuthGuard>{children}</AuthGuard>
+              </ToastProvider>
+            </UsuarioProvider>
+          </ApiKeyProvider>
+        </CursoProvider>
       </body>
     </html>
   );

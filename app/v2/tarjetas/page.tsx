@@ -1,244 +1,164 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import {
-  listTarjetasV2,
-  bloquearTarjetaV2,
-  activarTarjetaV2,
-  cambiarLimiteTarjetaV2,
-  type EstadoTarjetaV2,
-} from "@/lib/api/v2/tarjetas";
-import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
-import { ApiError } from "@/lib/api/http";
-import { testIds } from "@/lib/testids";
+import { ProgressBar } from "@/components/ProgressBar";
+import { ListToolbar, Pagination, SearchInput, SortableTh } from "@/components/list/ListControls";
+import { useToast } from "@/components/Toast";
+import { FiltroCliente } from "@/components/v2/FiltroCliente";
+import { TarjetaAcciones, estaVencida, mmaa, toneUso } from "@/components/v2/Tarjeta";
 import { Monto } from "@/components/Valores";
+import { listTarjetasV2, type EstadoTarjetaV2, type TarjetaV2 } from "@/lib/api/v2/tarjetas";
+import { useListControls, useQueryParam } from "@/lib/list/useListControls";
+import { testIds } from "@/lib/testids";
+import { MARCA_LABEL, TIPO_TARJETA_LABEL, badgeFor, capitalizar } from "@/lib/v2/labels";
+import { porcentajeUso } from "@/lib/v2/reglas";
+import { useFiltroCliente } from "@/lib/v2/useFiltroCliente";
 
 const ids = testIds("v2-tarjetas");
 const ESTADOS: EstadoTarjetaV2[] = ["activa", "bloqueada", "vencida"];
 
-function badgeClass(estado: EstadoTarjetaV2): string {
-  if (estado === "activa") return shared.badgeSuccess;
-  if (estado === "bloqueada") return shared.badgeDanger;
-  return shared.badgeWarning;
-}
-
 export default function TarjetasV2Page() {
-  const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
-  const [estado, setEstado] = useState<EstadoTarjetaV2 | "">("");
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<number | null>(null);
-  const [confirmBloquearId, setConfirmBloquearId] = useState<number | null>(null);
-  const [limiteEdits, setLimiteEdits] = useState<Record<number, string>>({});
+  const toast = useToast();
+  const titular = useFiltroCliente();
+  const [estado, setEstado] = useQueryParam("estado");
+  const [tipo, setTipo] = useQueryParam("tipo");
 
-  const parsedUsuarioId = usuarioId.trim() ? Number(usuarioId) : undefined;
-  const { data: tarjetas, error, isLoading, mutate } = useSWR(
-    ["v2-tarjetas", parsedUsuarioId, estado],
-    () => listTarjetasV2({ usuarioId: parsedUsuarioId, estado: estado || undefined }),
+  const { data, error, isLoading, mutate } = useSWR(["v2-tarjetas", titular.usuarioId, estado], () =>
+    listTarjetasV2({ usuarioId: titular.usuarioId, estado: (estado || undefined) as EstadoTarjetaV2 | undefined }),
   );
+  const tarjetas = tipo ? data?.filter((t) => t.tipo === tipo) : data;
 
-  async function handleToggle(id: number, action: "bloquear" | "activar") {
-    setActionError(null);
-    setActionSuccess(null);
-    setPendingId(id);
-    try {
-      await (action === "bloquear" ? bloquearTarjetaV2(id) : activarTarjetaV2(id));
-      await mutate();
-      setActionSuccess(action === "bloquear" ? "Tarjeta bloqueada." : "Tarjeta activada.");
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la tarjeta.");
-    } finally {
-      setPendingId(null);
-    }
-  }
-
-  async function handleCambiarLimite(id: number, nuevoLimite: string) {
-    setActionError(null);
-    setActionSuccess(null);
-    setPendingId(id);
-    try {
-      await cambiarLimiteTarjetaV2(id, Number(nuevoLimite));
-      await mutate();
-      setActionSuccess("Límite actualizado.");
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo cambiar el límite.");
-    } finally {
-      setPendingId(null);
-    }
-  }
+  const list = useListControls<TarjetaV2>(tarjetas, {
+    searchText: (t) => [t.numero_enmascarado.slice(-4), MARCA_LABEL[t.marca]],
+    sorters: {
+      id: (t) => t.id,
+      disponible: (t) => Number(t.disponible),
+      uso: (t) => porcentajeUso(Number(t.saldo_utilizado), Number(t.limite_credito)),
+      vencimiento: (t) => t.fecha_vencimiento,
+    },
+    defaultSort: { key: "id", dir: "asc" },
+  });
 
   return (
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-tarjetas" title="Tarjetas">
-        <div className={shared.field}>
-          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
-          <input
-            id="usuarioId"
-            value={usuarioId}
-            onChange={(e) => setUsuarioId(e.target.value)}
-            placeholder="Todas"
-            data-testid={ids.field("usuarioId")}
-          />
-        </div>
+        <Link
+          href={titular.usuarioId ? `/v2/tarjetas/new?usuarioId=${titular.usuarioId}` : "/v2/tarjetas/new"}
+          className={shared.button}
+          data-testid="v2-tarjetas-nueva"
+        >
+          Solicitar tarjeta
+        </Link>
+      </ModuleHeader>
+
+      <ListToolbar>
+        <FiltroCliente value={titular.value} onChange={titular.setValue} testId={ids.field("usuarioId")} />
         <div className={shared.field}>
           <label htmlFor="estado">Estado</label>
-          <select
-            id="estado"
-            value={estado}
-            onChange={(e) => setEstado(e.target.value as EstadoTarjetaV2 | "")}
-            data-testid={ids.field("estado")}
-          >
+          <select id="estado" value={estado} onChange={(e) => setEstado(e.target.value)} data-testid={ids.field("estado")}>
             <option value="">Todos</option>
             {ESTADOS.map((e) => (
               <option key={e} value={e}>
-                {e}
+                {capitalizar(e)}
               </option>
             ))}
           </select>
         </div>
-        <Link href="/v2/tarjetas/new" className={shared.button}>
-          Emitir tarjeta
-        </Link>
-      </ModuleHeader>
-
-      {actionError && (
-        <p role="alert" className={shared.fieldError}>
-          {actionError}
-        </p>
-      )}
-      {actionSuccess && (
-        <p role="status" className={shared.success} data-testid={ids.success}>
-          {actionSuccess}
-        </p>
-      )}
+        <div className={shared.field}>
+          <label htmlFor="tipo">Tipo</label>
+          <select id="tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} data-testid={ids.field("tipo")}>
+            <option value="">Todas</option>
+            <option value="credito">Crédito</option>
+            <option value="debito">Débito</option>
+          </select>
+        </div>
+        <SearchInput controls={list} ids={ids} label="Buscar" placeholder="Últimos 4 dígitos o marca" />
+      </ListToolbar>
 
       <DataState
         loading={isLoading}
         error={error ?? null}
-        empty={(tarjetas?.length ?? 0) === 0}
-        count={tarjetas?.length ?? 0}
+        empty={list.filteredCount === 0}
+        emptyMessage="No hay tarjetas con estos filtros."
+        count={list.filteredCount}
         countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
       >
-        <table className={shared.table} data-testid={ids.list}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Usuario</th>
-              <th>Tipo</th>
-              <th>Marca</th>
-              <th>Número</th>
-              <th>Límite</th>
-              <th>Utilizado</th>
-              <th>Disponible</th>
-              <th>Estado</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {tarjetas?.map((tarjeta) => (
-              <tr key={tarjeta.id} data-testid={ids.row(tarjeta.id)}>
-                <td>
-                  <Link href={`/v2/tarjetas/${tarjeta.id}`}>{tarjeta.id}</Link>
-                </td>
-                <td>
-                  <Link href={`/v2/usuarios/${tarjeta.usuario_id}`}>{tarjeta.usuario_id}</Link>
-                </td>
-                <td>{tarjeta.tipo}</td>
-                <td>{tarjeta.marca}</td>
-                <td>{tarjeta.numero_enmascarado}</td>
-                <td>
-                  <Monto value={tarjeta.limite_credito} />
-                </td>
-                <td>
-                  <Monto value={tarjeta.saldo_utilizado} />
-                </td>
-                <td>
-                  <Monto value={tarjeta.disponible} />
-                </td>
-                <td>
-                  <span className={badgeClass(tarjeta.estado)}>{tarjeta.estado}</span>
-                </td>
-                <td className={shared.rowActions}>
-                  <button
-                    type="button"
-                    className={shared.buttonSecondary}
-                    disabled={tarjeta.estado !== "activa" || pendingId === tarjeta.id}
-                    onClick={() => setConfirmBloquearId(tarjeta.id)}
-                    data-testid={ids.rowAction(tarjeta.id, "bloquear")}
-                  >
-                    Bloquear
-                  </button>
-                  <button
-                    type="button"
-                    className={shared.buttonSecondary}
-                    disabled={tarjeta.estado !== "bloqueada" || pendingId === tarjeta.id}
-                    onClick={() => handleToggle(tarjeta.id, "activar")}
-                    data-testid={ids.rowAction(tarjeta.id, "activar")}
-                  >
-                    Activar
-                  </button>
-                  {tarjeta.tipo === "credito" && (
-                    <form
-                      className={shared.rowActions}
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const value = limiteEdits[tarjeta.id] ?? tarjeta.limite_credito;
-                        handleCambiarLimite(tarjeta.id, value);
-                      }}
-                    >
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        style={{ width: "8em" }}
-                        value={limiteEdits[tarjeta.id] ?? tarjeta.limite_credito}
-                        onChange={(e) =>
-                          setLimiteEdits((prev) => ({ ...prev, [tarjeta.id]: e.target.value }))
-                        }
-                        disabled={pendingId === tarjeta.id}
-                        data-testid={ids.field(`limite-${tarjeta.id}`)}
-                        aria-label="Nuevo límite"
-                      />
-                      <button
-                        type="submit"
-                        className={shared.buttonSecondary}
-                        disabled={pendingId === tarjeta.id}
-                        data-testid={ids.rowAction(tarjeta.id, "limite")}
-                      >
-                        Cambiar límite
-                      </button>
-                    </form>
-                  )}
-                </td>
+        <div className={shared.tableWrap}>
+          <table className={shared.table} data-testid={ids.list}>
+            <thead>
+              <tr>
+                <SortableTh controls={list} ids={ids} column="id">
+                  Tarjeta
+                </SortableTh>
+                <th>Titular</th>
+                <SortableTh controls={list} ids={ids} column="disponible" numeric>
+                  Disponible
+                </SortableTh>
+                <SortableTh controls={list} ids={ids} column="uso">
+                  Uso del límite
+                </SortableTh>
+                <SortableTh controls={list} ids={ids} column="vencimiento">
+                  Vence
+                </SortableTh>
+                <th>Estado</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.pageRows.map((tarjeta) => {
+                const vencida = estaVencida(tarjeta);
+                const uso = porcentajeUso(Number(tarjeta.saldo_utilizado), Number(tarjeta.limite_credito));
+                return (
+                  <tr key={tarjeta.id} data-testid={ids.row(tarjeta.id)} data-estado={tarjeta.estado}>
+                    <td>
+                      <Link href={`/v2/tarjetas/${tarjeta.id}`}>
+                        {MARCA_LABEL[tarjeta.marca]} {TIPO_TARJETA_LABEL[tarjeta.tipo].toLowerCase()} ····{" "}
+                        {tarjeta.numero_enmascarado.slice(-4)}
+                      </Link>
+                    </td>
+                    <td>
+                      <Link href={`/v2/usuarios/${tarjeta.usuario_id}`}>Cliente #{tarjeta.usuario_id}</Link>
+                    </td>
+                    <td className={shared.numeric}>
+                      {tarjeta.tipo === "credito" ? <Monto value={tarjeta.disponible} moneda="PYG" /> : "Saldo de la cuenta"}
+                    </td>
+                    <td>
+                      {tarjeta.tipo === "credito" ? (
+                        <ProgressBar value={uso} label="Usado" tone={toneUso(uso)} testId={ids.rowAction(tarjeta.id, "uso")} />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>{mmaa(tarjeta.fecha_vencimiento)}</td>
+                    <td>
+                      <span className={badgeFor(vencida ? "vencida" : tarjeta.estado)} data-testid={ids.rowAction(tarjeta.id, "estado")}>
+                        {vencida ? "Vencida" : capitalizar(tarjeta.estado)}
+                      </span>
+                    </td>
+                    <td>
+                      <TarjetaAcciones
+                        tarjeta={tarjeta}
+                        onChanged={async (_, mensaje) => {
+                          await mutate();
+                          toast.success(mensaje);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <Pagination controls={list} ids={ids} total={list.filteredCount} />
       </DataState>
-
-      <ConfirmDialog
-        open={confirmBloquearId !== null}
-        title="¿Bloquear esta tarjeta?"
-        description="La tarjeta dejará de poder usarse hasta que la actives de nuevo."
-        confirmLabel="Bloquear"
-        danger
-        testId={ids.rowAction(confirmBloquearId ?? 0, "bloquear")}
-        onCancel={() => setConfirmBloquearId(null)}
-        onConfirm={() => {
-          const id = confirmBloquearId;
-          setConfirmBloquearId(null);
-          if (id !== null) handleToggle(id, "bloquear");
-        }}
-      />
     </div>
   );
 }

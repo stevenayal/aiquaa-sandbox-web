@@ -10,11 +10,15 @@ import { getRosterEntry } from "@/lib/api/roster";
  * (ver Nav.tsx y app/page.tsx).
  */
 export function useRosterEntry(email: string | undefined) {
-  const { data, isLoading } = useSWR(
+  const { data, error, isLoading } = useSWR(
     email ? ["roster", email] : null,
     () => getRosterEntry(email as string),
     { shouldRetryOnError: false },
   );
 
-  return { rosterEntry: data ?? null, isLoading };
+  // `isLoading` vuelve a true en cada revalidación mientras no haya data (un
+  // 404 nunca la tiene). `settled` queda en true desde la primera respuesta.
+  const settled = !email || data !== undefined || error !== undefined;
+
+  return { rosterEntry: data ?? null, isLoading, settled };
 }

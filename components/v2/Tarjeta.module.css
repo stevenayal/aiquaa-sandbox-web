@@ -1,0 +1,75 @@
+.plastico {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1.586;
+  padding: var(--space-4);
+  border-radius: 14px;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.25);
+  font-variant-numeric: tabular-nums;
+}
+
+.visa {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+}
+
+.mastercard {
+  background: linear-gradient(135deg, #7c2d12, #ea580c);
+}
+
+.amex {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
+.top,
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-2);
+  font-size: 0.8em;
+  opacity: 0.95;
+}
+
+.chip {
+  width: 40px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fde68a, #d97706);
+}
+
+.numero {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 1.15em;
+  letter-spacing: 0.08em;
+}
+
+.titular {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.vencimiento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.marcaDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

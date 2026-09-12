@@ -12,6 +12,8 @@ interface DeleteButtonProps {
   label?: string;
   onDelete: () => Promise<void>;
   onDeleted?: () => void;
+  /** Regla de negocio que impide eliminar (ej. saldo distinto de 0): deshabilita el botón y la muestra. */
+  disabledReason?: string | null;
 }
 
 /**
@@ -19,7 +21,15 @@ interface DeleteButtonProps {
  * ConfirmDialog) antes de ejecutar, muestra estado "Eliminando..." mientras
  * dura la request (Umbral de Doherty) y el error inline si falla.
  */
-export function DeleteButton({ testId, title, description, label = "Eliminar", onDelete, onDeleted }: DeleteButtonProps) {
+export function DeleteButton({
+  testId,
+  title,
+  description,
+  label = "Eliminar",
+  onDelete,
+  onDeleted,
+  disabledReason,
+}: DeleteButtonProps) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -40,14 +50,19 @@ export function DeleteButton({ testId, title, description, label = "Eliminar", o
   return (
     <>
       {error && (
-        <p role="alert" className={shared.fieldError}>
+        <p role="alert" className={shared.fieldError} data-testid={`${testId}-error`}>
           {error}
+        </p>
+      )}
+      {disabledReason && (
+        <p className={shared.hint} data-testid={`${testId}-hint`}>
+          {disabledReason}
         </p>
       )}
       <button
         type="button"
         className={shared.buttonDanger}
-        disabled={deleting}
+        disabled={deleting || Boolean(disabledReason)}
         onClick={() => setConfirmOpen(true)}
         data-testid={testId}
       >

@@ -1,42 +1,108 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import shared from "@/components/shared.module.css";
 import { ModuleHeader } from "@/components/ModuleHeader";
+import { Stepper } from "@/components/Stepper";
+import { Field, FormError } from "@/components/form/Field";
+import { MontoInput } from "@/components/form/MontoInput";
+import { CheckboxField } from "@/components/form/RadioCards";
+import { WizardActions } from "@/components/form/WizardActions";
+import { useToast } from "@/components/Toast";
+import { ClienteSelect, CuentaSelect, describeCuenta } from "@/components/v2/EntitySelects";
+import { MONTO_PRESTAMO, PLAZOS_PRESTAMO, SimulacionPrestamo } from "@/components/v2/SimulacionPrestamo";
+import { Monto, Porcentaje } from "@/components/Valores";
 import { solicitarPrestamoV2 } from "@/lib/api/v2/prestamos";
-import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
-import { ApiError } from "@/lib/api/http";
+import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { useFormState } from "@/lib/forms/useFormState";
+import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
+import { simularPrestamo } from "@/lib/v2/reglas";
+import { useClientesV2, useCuentasCliente } from "@/lib/v2/useEntidadesCliente";
+import { monto, parseMonto, requerido, tasa, validarCampos } from "@/lib/validation/v2";
 
 const ids = testIds("v2-prestamos");
+const PASOS = ["Simulación", "Confirmación"];
+const CAMPOS_PASO_1 = ["usuarioId", "cuentaId", "montoSolicitado", "tasaInteres", "plazoMeses"] as const;
 
 export default function NuevoPrestamoV2Page() {
   const router = useRouter();
-  const [usuarioId, setUsuarioId] = useDefaultUsuarioId();
-  const [cuentaId, setCuentaId] = useState("");
-  const [montoSolicitado, setMontoSolicitado] = useState("");
-  const [tasaInteres, setTasaInteres] = useState("");
-  const [plazoMeses, setPlazoMeses] = useState("");
+  const toast = useToast();
+  const searchParams = useSearchParams();
+  const { usuario } = useUsuario();
+  const { clientes, isLoading: clientesLoading } = useClientesV2();
+  const [paso, setPaso] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const form = useFormState({
+    initial: {
+      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      cuentaId: "",
+      montoSolicitado: "",
+      tasaInteres: "18",
+      plazoMeses: "12",
+      acepto: "",
+    },
+    ids,
+    validate: (v) =>
+      validarCampos(v, {
+        usuarioId: [requerido("Elegí el titular.")],
+        // UI: el préstamo se acredita en una cuenta en guaraníes del titular (la API la acepta opcional).
+        cuentaId: [requerido("Elegí la cuenta donde se acredita el préstamo.")],
+        montoSolicitado: [
+          monto({
+            min: MONTO_PRESTAMO.min,
+            max: MONTO_PRESTAMO.max,
+            minMessage: `El monto mínimo es ${formatMonto(MONTO_PRESTAMO.min, "PYG")}.`,
+            maxMessage: `El monto máximo es ${formatMonto(MONTO_PRESTAMO.max, "PYG")}.`,
+          }),
+        ],
+        tasaInteres: [tasa],
+        plazoMeses: [requerido("Elegí el plazo.")],
+        acepto: [requerido("Tenés que aceptar las condiciones del préstamo.")],
+      }),
+  });
+
+  const { cuentas, isLoading: cuentasLoading } = useCuentasCliente(form.values.usuarioId);
+  const cuentasPyg = cuentas.filter((c) => c.estado === "activa" && c.moneda === "PYG");
+  const cuenta = cuentasPyg.find((c) => String(c.id) === form.values.cuentaId);
+  const titular = clientes.find((c) => String(c.id) === form.values.usuarioId);
+
+  const montoNum = parseMonto(form.values.montoSolicitado);
+  const tasaNum = parseMonto(form.values.tasaInteres);
+  const plazoNum = Number(form.values.plazoMeses);
+  const simulacion =
+    montoNum && montoNum > 0 && tasaNum !== null && !form.validationErrors.tasaInteres && plazoNum > 0
+      ? simularPrestamo(montoNum, tasaNum, plazoNum)
+      : null;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (paso === 0) {
+      if (form.validateFields([...CAMPOS_PASO_1])) setPaso(1);
+      return;
+    }
+    if (!form.validateFields(["acepto"])) return;
+
     setSubmitting(true);
-    setError(null);
     try {
       const prestamo = await solicitarPrestamoV2({
-        usuarioId: Number(usuarioId),
-        cuentaId: cuentaId.trim() ? Number(cuentaId) : undefined,
-        montoSolicitado: Number(montoSolicitado),
-        tasaInteres: Number(tasaInteres),
-        plazoMeses: Number(plazoMeses),
+        usuarioId: Number(form.values.usuarioId),
+        cuentaId: Number(form.values.cuentaId),
+        montoSolicitado: montoNum as number,
+        tasaInteres: tasaNum as number,
+        plazoMeses: plazoNum,
       });
+      toast.success(`Solicitud N° ${prestamo.id} enviada. Queda en evaluación.`);
       router.push(`/v2/prestamos/${prestamo.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo solicitar el préstamo.");
-    } finally {
+      const campo = form.applyApiError(
+        err,
+        [{ field: "tasaInteres", when: (e) => e.message.toLowerCase().includes("tasa") }],
+        "No se pudo enviar la solicitud.",
+      );
+      if (campo) setPaso(0);
       setSubmitting(false);
     }
   }
@@ -44,83 +110,93 @@ export default function NuevoPrestamoV2Page() {
   return (
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-prestamos" title="Solicitar préstamo" />
+      <Stepper steps={PASOS} current={paso} testId="v2-prestamos" />
 
-      <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.form}>
-        <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
-          <input
-            id="usuarioId"
-            required
-            value={usuarioId}
-            onChange={(e) => setUsuarioId(e.target.value)}
-            data-testid={ids.field("usuarioId")}
+      <div className={shared.twoColumns}>
+        <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={ids.form}>
+          {paso === 0 && (
+            <>
+              <Field form={form} name="usuarioId" label="Titular">
+                <ClienteSelect {...form.fieldProps("usuarioId")} items={clientes} isLoading={clientesLoading} />
+              </Field>
+              <Field form={form} name="cuentaId" label="Cuenta de acreditación" hint="Solo cuentas activas en guaraníes.">
+                <CuentaSelect
+                  {...form.fieldProps("cuentaId", { hint: true })}
+                  items={cuentasPyg}
+                  isLoading={cuentasLoading}
+                  emptyLabel="El titular no tiene cuentas activas en PYG"
+                />
+              </Field>
+              <Field
+                form={form}
+                name="montoSolicitado"
+                label="Monto"
+                hint={`Entre ${formatMonto(MONTO_PRESTAMO.min, "PYG")} y ${formatMonto(MONTO_PRESTAMO.max, "PYG")}.`}
+              >
+                <MontoInput {...form.controlProps("montoSolicitado", { hint: true })} moneda="PYG" />
+              </Field>
+              <Field form={form} name="plazoMeses" label="Plazo">
+                <select {...form.fieldProps("plazoMeses")}>
+                  {PLAZOS_PRESTAMO.map((p) => (
+                    <option key={p} value={p}>
+                      {p} meses
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field form={form} name="tasaInteres" label="Interés total (%)" hint="Se aplica una sola vez sobre el monto.">
+                <input {...form.fieldProps("tasaInteres", { hint: true })} inputMode="decimal" />
+              </Field>
+            </>
+          )}
+
+          {paso === 1 && simulacion && (
+            <>
+              <dl className={shared.summary} data-testid="v2-prestamos-resumen">
+                <dt>Titular</dt>
+                <dd>{titular?.nombre ?? `Cliente #${form.values.usuarioId}`}</dd>
+                <dt>Se acredita en</dt>
+                <dd>{cuenta ? describeCuenta(cuenta) : `Cuenta #${form.values.cuentaId}`}</dd>
+                <dt>Monto</dt>
+                <dd>
+                  <Monto value={montoNum!.toFixed(2)} moneda="PYG" testId="v2-prestamos-resumen-monto" />
+                </dd>
+                <dt>Interés</dt>
+                <dd>
+                  <Porcentaje value={tasaNum!.toFixed(2)} testId="v2-prestamos-resumen-tasa" />
+                </dd>
+                <dt>Plazo</dt>
+                <dd data-testid="v2-prestamos-resumen-plazo">{plazoNum} cuotas mensuales</dd>
+                <dt>Cuota</dt>
+                <dd>
+                  <Monto value={simulacion.cuota.toFixed(2)} moneda="PYG" testId="v2-prestamos-resumen-cuota" />
+                </dd>
+                <dt>Total a pagar</dt>
+                <dd>
+                  <Monto value={simulacion.total.toFixed(2)} moneda="PYG" testId="v2-prestamos-resumen-total" />
+                </dd>
+              </dl>
+              <p className={shared.info}>La solicitud queda en evaluación. Las cuotas se generan cuando se aprueba.</p>
+              <CheckboxField form={form} name="acepto">
+                Acepto las condiciones del préstamo y autorizo la consulta a centrales de riesgo.
+              </CheckboxField>
+            </>
+          )}
+
+          <FormError form={form} />
+
+          <WizardActions
+            ids={ids}
+            onBack={paso > 0 ? () => setPaso(0) : undefined}
+            nextLabel={paso === 0 ? "Continuar" : "Enviar solicitud"}
+            submitting={submitting}
+            submittingLabel="Enviando..."
+            isLast={paso === 1}
           />
-        </div>
+        </form>
 
-        <div className={shared.field}>
-          <label htmlFor="cuentaId">cuentaId (opcional)</label>
-          <input
-            id="cuentaId"
-            type="number"
-            value={cuentaId}
-            onChange={(e) => setCuentaId(e.target.value)}
-            data-testid={ids.field("cuentaId")}
-          />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="montoSolicitado">Monto solicitado</label>
-          <input
-            id="montoSolicitado"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            value={montoSolicitado}
-            onChange={(e) => setMontoSolicitado(e.target.value)}
-            data-testid={ids.field("montoSolicitado")}
-          />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="tasaInteres">Tasa de interés (%)</label>
-          <input
-            id="tasaInteres"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            value={tasaInteres}
-            onChange={(e) => setTasaInteres(e.target.value)}
-            data-testid={ids.field("tasaInteres")}
-          />
-        </div>
-
-        <div className={shared.field}>
-          <label htmlFor="plazoMeses">Plazo (meses)</label>
-          <input
-            id="plazoMeses"
-            type="number"
-            step="1"
-            min="1"
-            max="120"
-            required
-            value={plazoMeses}
-            onChange={(e) => setPlazoMeses(e.target.value)}
-            data-testid={ids.field("plazoMeses")}
-          />
-        </div>
-
-        {error && (
-          <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("usuarioId")}>
-            {error}
-          </p>
-        )}
-
-        <button type="submit" className={shared.button} disabled={submitting} data-testid={ids.submit}>
-          {submitting ? "Solicitando..." : "Solicitar préstamo"}
-        </button>
-      </form>
+        {paso === 0 && <SimulacionPrestamo simulacion={simulacion} />}
+      </div>
     </div>
   );
 }

@@ -22,7 +22,8 @@ const FECHA_HORA = new Intl.DateTimeFormat("es-PY", {
   hour12: false,
 });
 
-function aNumero(value: ValorNumerico): number | null {
+/** Monto del backend (string o number) → number, o `null` si no es un número válido. */
+export function aNumero(value: ValorNumerico): number | null {
   if (value === null || value === undefined || value === "") return null;
   const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : null;
@@ -47,9 +48,16 @@ export function formatPorcentaje(value: ValorNumerico): string {
   return `${PORCENTAJE.format(n)} %`;
 }
 
+// Una columna `date` de Postgres llega como `2026-09-04` o, serializada por
+// node-postgres, como medianoche UTC (`2026-09-04T00:00:00.000Z`). Pasarla por
+// Date la corre al día anterior en Paraguay (UTC-3/-4): se formatea del string.
+const FECHA_CALENDARIO = /^(\d{4})-(\d{2})-(\d{2})(T00:00:00(\.000)?Z)?$/;
+
 /** ISO del backend → `04/09/2026`. Sin hora, para fechas de calendario. */
 export function formatFecha(value: string | null | undefined): string {
   if (!value) return "—";
+  const calendario = FECHA_CALENDARIO.exec(value);
+  if (calendario) return `${calendario[3]}/${calendario[2]}/${calendario[1]}`;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : FECHA.format(date);
 }
