@@ -25,43 +25,43 @@ vía un proxy same-origin — el browser nunca habla directo con el backend.
 > `NODE_USE_SYSTEM_CA=1` (ya está en `.claude/launch.json`) lo resuelve usando el almacén de
 > certificados del sistema.
 
-## Login en dos capas
+## Login en tres capas
 
 No hay JWT ni cookies de sesión — todo vive en `localStorage` del browser:
 
-1. **`/login` — API key.** Pegá la `x-api-key` que te dieron para el sandbox. Se guarda en
-   `localStorage` y se manda en cada request al backend a través del proxy. Sin key acá, no
-   se puede entrar a ninguna otra pantalla.
+1. **`/curso` — elegir cohorte.** Lo primero que se pide al entrar: "Curso 1 · Automatización"
+   o "Curso 2 · Productos Bancarios" (`sandbox:curso`). Determina qué key se pide después, qué
+   login de negocio aplica y qué menú se carga — no hay forma de mezclar módulos de los dos
+   cursos en una misma sesión. "Cambiar curso" (en `/login`) lo limpia y vuelve acá.
+2. **`/login` — API key del curso elegido.** Pegá la `x-api-key` que te dieron para ese curso.
+   Se guarda en su slot (`sandbox:apiKey` para curso 1, `sandbox:apiKeyV2` para curso 2) y se
+   manda en cada request al backend a través del proxy. Sin key acá, no se puede entrar a
+   ninguna otra pantalla.
 
-   Hay **una key por curso**, guardadas en slots distintos (`sandbox:apiKey` para curso 1,
-   `sandbox:apiKeyV2` para curso 2): el backend marca cada key con su cohorte
-   (`public.api_keys.curso`) y las rutas de `/api/v2/**` responden `403` a cualquier key que no
-   sea de curso 2. `/login` detecta sola de qué curso es la key que pegaste (sondea
-   `GET /v2/usuarios`: `200` ⇒ curso 2, `403` ⇒ curso 1) y la guarda en el slot correcto —
-   el formulario muestra qué key hay cargada de cada curso. Si tenés una de cada uno, cargá
-   las dos; con cualquiera de las dos ya se puede entrar.
-
-   Al revés no hace falta: las rutas de `/api/v1/**` aceptan keys de cualquier curso, así que
-   un alumno de curso 2 con solo su key usa igual los endpoints comunes (`/roster`,
-   `/auth/login`).
-2. **`/auth/login` — usuario de negocio.** Ingresá el email de un usuario activo (creado antes
+   El backend marca cada key con su cohorte (`public.api_keys.curso`) y las rutas de
+   `/api/v2/**` responden `403` a cualquier key que no sea de curso 2. `/login` valida la key
+   contra ese curso (sondea `GET /v2/usuarios`: `200` ⇒ curso 2, `403` ⇒ curso 1) — si pegaste
+   la key del otro curso, no se guarda y el formulario avisa "Esta API key es del curso X,
+   elegiste el curso Y."
+3. **`/auth/login` — usuario de negocio.** Ingresá el email de un usuario activo (creado antes
    vía "Usuarios" → "Nuevo usuario", o ya existente). No hay contraseña real: el backend solo
    valida que el email corresponda a un usuario activo. El resto de los módulos dependen de
    este `usuario.id`, porque los endpoints piden `usuarioId` explícito.
 
-   En una sesión de **solo curso 2** esta capa resuelve contra los clientes del banco
-   (`GET /v2/usuarios?email=`), porque la API v2 no tiene `/auth/login` y sus clientes viven en
-   otro schema. La pantalla de "recuperar acceso" (endpoints de v1) queda oculta ahí.
+   En el **curso 2** esta capa resuelve contra los clientes del banco (`GET /v2/usuarios?email=`),
+   porque la API v2 no tiene `/auth/login` y sus clientes viven en otro schema. La pantalla de
+   "recuperar acceso" (endpoints de v1) queda oculta ahí.
 
 Si el backend responde `401` en cualquier momento (key inválida o revocada a mitad de sesión),
 la app limpia la key automáticamente y te manda de vuelta a `/login`.
 
-Para cerrar sesión: botón "Cerrar sesión" en la barra de navegación (limpia ambas capas).
+Para cerrar sesión: botón "Cerrar sesión" en la barra de navegación (limpia las tres capas y
+vuelve a `/curso`).
 
 ### Modo demo (sin pedir API key)
 
 Si el servidor tiene `SANDBOX_DEMO_API_KEY` (curso 1) o `SANDBOX_DEMO_API_KEY_V2` (curso 2)
-configurada (ver `.env.example`), capa 1 desaparece:
+configurada (ver `.env.example`), capa 2 desaparece para ese curso:
 el proxy inyecta esa key server-side en cada request, sin que el browser la vea nunca — no va al
 bundle del cliente, no aparece en `localStorage`, no se puede ver con F12. `/login` sigue
 existiendo por si alguien quiere pisarla con su propia key personal (la del browser manda sobre
@@ -70,13 +70,42 @@ la demo si está presente).
 Son dos variables porque son dos keys distintas: `SANDBOX_DEMO_API_KEY_V2` es la de curso 2 y
 es la única que sirve para `/api/v2/**`. Si falta, v2 cae a `SANDBOX_DEMO_API_KEY` (que solo
 funciona si esa key ya es de curso 2); y las rutas de v1, al ser agnósticas de cohorte, caen a
-la de curso 2 si no hay una de curso 1. Los módulos que se muestran en el nav y en el home
-dependen de para qué cursos hay key (propia o demo): sin key de un curso, sus módulos no
-aparecen, porque todos sus requests terminarían en `401`/`403`.
+la de curso 2 si no hay una de curso 1.
 
 Pensado para demo/uso personal — **no** para un curso con alumnos reales, ahí cada alumno
 necesita su propia key para que el rate-limit (30 req/min) y el audit log del backend lo
 distingan; una key compartida los mezcla a todos.
+
+## Menú dinámico
+
+El Nav y el home no traen los módulos harcodeados: los piden a `GET /api/menu?curso=&grupo=`,
+un route handler de este mismo repo (`app/api/menu/route.ts`) — no pega al backend ni lleva API
+key, es configuración del front. Devuelve el mismo envelope `{ data }` / `{ error }` que la API
+del sandbox:
+
+```json
+GET /api/menu?curso=2&grupo=4
+{ "data": { "curso": 2, "grupo": 4, "secciones": [
+  { "id": "pagos", "titulo": "Pagos", "items": [
+    { "key": "v2-beneficiarios", "href": "/v2/beneficiarios", "label": "Beneficiarios", "productName": "aiquaa Banking", "tagline": "Beneficiarios", "accent": "#4d7c0f", "icon": "contact" }
+  ] }
+] } }
+```
+
+`curso` es obligatorio (`1` o `2`); `grupo` es opcional (sin roster o key demo, sin restricción de
+grupo). Un `curso`/`grupo` inválido responde `400 VALIDATION_ERROR`. `lib/menu/modules.ts` tiene
+el catálogo (movido de `components/Nav.tsx`) y arma las secciones — en curso 2 agrupadas por
+línea de producto (Clientes, Cuentas y tarjetas, Crédito, Pagos, Inversión); en curso 1, una sola.
+
+`lib/menu/useMenu.ts` lo pide con SWR (cruzando el roster del alumno, igual que antes) y lo
+consumen `Nav` y `app/page.tsx`, con:
+
+| Estado | testid |
+|---|---|
+| Cargando | `nav-loading` (Nav) / `home-modules-loading` (home) |
+| Error | `nav-error` + botón `nav-retry` / `home-modules-error` + `home-modules-retry` |
+| Ítem del menú | `nav-item-{key}` / `home-module-{key}` |
+| Página activa | `aria-current="page"` en el link del Nav |
 
 ## Convención de selectores (`data-testid`)
 
@@ -97,6 +126,20 @@ semántico real (`<table>`, `<form>`, `<label htmlFor>`, `<button>` — nunca re
 | `{modulo}-detail` | Contenedor de una vista de detalle |
 | `{modulo}-success` | Mensaje de confirmación (`role="status"`) |
 | `{testId}-confirm-dialog` / `-confirm-accept` / `-confirm-cancel` | Modal de confirmación (`role="alertdialog"`) antes de una acción irreversible — ver [`components/ConfirmDialog.tsx`](components/ConfirmDialog.tsx) |
+| `{testId}-dialog` | Modal con contenido propio (ej. motivo de bloqueo) — ver [`components/Dialog.tsx`](components/Dialog.tsx) |
+| `{modulo}-field-{name}-hint` | Regla o ayuda visible debajo de un campo |
+| `{modulo}-form-error` | Error del formulario que no corresponde a un campo puntual |
+| `{modulo}-step-{n}` (1-based) / `-step-next` / `-step-back` | Paso actual de un wizard y sus botones de avance/retroceso — ver [`components/Stepper.tsx`](components/Stepper.tsx) |
+| `{modulo}-receipt` / `-receipt-{campo}` / `-receipt-print` | Comprobante de una operación terminada — ver [`components/Receipt.tsx`](components/Receipt.tsx) |
+| `{modulo}-search` | Cuadro de búsqueda de una lista (debounce de 300 ms) |
+| `{modulo}-sort-{columna}` | Botón de orden de una columna (`aria-sort` en el `<th>`) |
+| `{modulo}-page-prev` / `-page-next` / `-page-info` | Paginación — ver [`components/list/ListControls.tsx`](components/list/ListControls.tsx) |
+| `toast-success` / `toast-error` / `toast-close` | Notificación efímera de éxito/error (5 s) — ver [`components/Toast.tsx`](components/Toast.tsx) |
+
+Búsqueda, orden, filtros y página de una lista viven en la URL (`?q=&sort=&dir=&page=`, más los
+filtros propios de cada módulo como `?estado=` o `?usuarioId=`), armados por
+[`lib/list/useListControls.ts`](lib/list/useListControls.ts) — todo client-side, porque la API
+del curso 2 devuelve hasta 100 filas sin paginar.
 
 ### Montos y fechas: `data-value`
 
@@ -137,20 +180,42 @@ sigue la forma real de sus endpoints (no todos tienen list+detail simétrico):
 
 ### Curso 2 — Productos Bancarios (`/v2/**`)
 
-Cohorte aparte: otro schema, otras API keys (ver "Login en dos capas") y 5 grupos propios.
+Cohorte aparte: otro schema, otras API keys (ver "Login en tres capas") y 5 grupos propios.
 Los nombres se repiten (cuentas, tarjetas, transferencias) pero son recursos distintos de los
-del curso 1.
+del curso 1. Cada módulo tiene validación por campo, listas con búsqueda/orden/paginación en la
+URL y las reglas de negocio del banco a la vista (ver "Reglas de UI vs. reglas de la API" abajo).
 
 | Módulo | Rutas | Notas |
 |---|---|---|
-| Clientes | `/v2/usuarios`, `/v2/usuarios/new`, `/v2/usuarios/[id]` | Transversal: de acá sale el `usuarioId` del resto |
-| Cuentas | `/v2/cuentas`, `/v2/cuentas/new`, `/v2/cuentas/[id]` | Grupo 1. El detail incluye saldo, movimientos (alta inline) y cambio de estado |
-| Tarjetas | `/v2/tarjetas`, `/v2/tarjetas/new`, `/v2/tarjetas/[id]` | Grupo 2. Bloquear/activar/límite inline y en el detail, que además edita marca y vencimiento |
-| Préstamos | `/v2/prestamos`, `/v2/prestamos/new`, `/v2/prestamos/[id]` | Grupo 3. El detail aprueba y paga cuotas |
-| Beneficiarios | `/v2/beneficiarios`, `/v2/beneficiarios/new`, `/v2/beneficiarios/[id]` | Grupo 4, con Transferencias |
-| Transferencias | `/v2/transferencias`, `/v2/transferencias/[id]` | Grupo 4. La raíz es form + lista; el detail permite anular |
-| Ahorros | `/v2/ahorros`, `/v2/ahorros/new`, `/v2/ahorros/[id]` | Grupo 5. El detail registra aportes |
-| Depósitos | `/v2/depositos`, `/v2/depositos/new`, `/v2/depositos/[id]` | Grupo 5. El detail permite cancelar antes del vencimiento |
+| Clientes | `/v2/usuarios`, `/v2/usuarios/new`, `/v2/usuarios/[id]` | Transversal: de acá sale el `usuarioId` del resto. Alta en 3 pasos (datos, documento con formato según tipo, revisión); el detail deja el documento en solo lectura |
+| Cuentas | `/v2/cuentas`, `/v2/cuentas/new`, `/v2/cuentas/[id]` | Grupo 1. Apertura con tarjetas de tipo/moneda; el detail muestra saldo, bloquear/desbloquear/cerrar según estado y el extracto (débito/crédito separados, paginado) |
+| Tarjetas | `/v2/tarjetas`, `/v2/tarjetas/new`, `/v2/tarjetas/[id]` | Grupo 2. Vista del plástico, barra de uso del límite, bloqueo con motivo obligatorio (modal) y vencimiento MM/AAAA |
+| Préstamos | `/v2/prestamos`, `/v2/prestamos/new`, `/v2/prestamos/[id]` | Grupo 3. Simulador de cuotas en vivo (misma fórmula que la API) antes de solicitar; el detail aprueba con confirmación y solo deja pagar la próxima cuota pendiente |
+| Beneficiarios | `/v2/beneficiarios`, `/v2/beneficiarios/new`, `/v2/beneficiarios/[id]` | Grupo 4, con Transferencias. Banco de una lista de bancos paraguayos, alias único por cliente |
+| Transferencias | `/v2/transferencias`, `/v2/transferencias/new`, `/v2/transferencias/[id]` | Grupo 4. La raíz es el historial; el alta es un wizard de 4 pasos (destino → monto → confirmación → comprobante) con tope diario; el detail anula con motivo |
+| Ahorros | `/v2/ahorros`, `/v2/ahorros/new`, `/v2/ahorros/[id]` | Grupo 5. Proyecta en cuántos meses se llega a la meta; el detail aporta con tope de saldo de la cuenta |
+| Depósitos | `/v2/depositos`, `/v2/depositos/new`, `/v2/depositos/[id]` | Grupo 5. Plazos estándar con tasa sugerida y preview de interés; cancelar antes del vencimiento anticipa el interés prorrateado |
+
+### Reglas de UI vs. reglas de la API (curso 2)
+
+Los módulos del curso 2 replican las reglas del backend (`aiquaa-sandbox-api`, `app/api/v2/**`)
+y además agregan reglas propias de la interfaz, **más estrictas** que la API — útil para
+practicar la diferencia entre probar la UI y probar la API directamente (un request a la API
+con estos datos pasa; por la UI, no):
+
+| Regla de UI | Dónde | La API en cambio... |
+|---|---|---|
+| Formato de documento según tipo (CI 5-8 dígitos, RUC con dígito verificador, pasaporte alfanumérico) | Alta/edición de clientes | Solo exige que no esté vacío |
+| Celular con formato paraguayo (`09XX...` / `+595 9XX...`) | Clientes | Acepta cualquier texto |
+| Vencimiento de tarjeta posterior al mes actual y a 5 años como máximo | Emisión/renovación de tarjetas | Solo valida el formato `YYYY-MM-DD` |
+| Débito con cuenta asociada obligatoria; Amex solo emite crédito; límite entre 1 y 100 millones | Emisión de tarjetas | Cuenta y límite son opcionales, sin rango |
+| Monto de préstamo entre 500 mil y 500 millones; plazos de una lista estándar | Solicitud de préstamos | Acepta cualquier monto > 0 y plazo de 1 a 120 meses |
+| Pagar solo la próxima cuota pendiente, en orden | Cuotas de préstamos | Permite pagar cualquier cuota, en cualquier orden |
+| Alias de beneficiario único por cliente | Beneficiarios | No lo controla |
+| Tope diario de transferencias por cuenta (PYG 50.000.000 / USD 10.000) | Transferencias | Sin límite |
+| Motivo obligatorio (10-120 caracteres) para anular una transferencia | Anular transferencia | El motivo es opcional |
+| Meta de ahorro máximo a 120 meses según el aporte cargado | Ahorro programado | Sin tope de plazo |
+| Monto mínimo de depósito a plazo (PYG 1.000.000) | Depósitos a plazo | Sin mínimo, solo > 0 |
 
 ## Buenas prácticas de UX aplicadas
 
@@ -185,7 +250,14 @@ sesión (Ley de Tesler). Se sumó:
   la key de curso 2, `cuentas` con la de curso 1.
 - **Data fetching**: [SWR](https://swr.vercel.app), `isLoading` fijo (no `isValidating`) para
   que los estados de carga sean predecibles al automatizar.
-- **Auth**: [`lib/auth/`](lib/auth) (`ApiKeyContext`, `UsuarioContext`, `AuthGuard`).
+- **Auth**: [`lib/auth/`](lib/auth) (`CursoContext`, `ApiKeyContext`, `UsuarioContext`, `AuthGuard`).
+- **Menú**: [`lib/menu/modules.ts`](lib/menu/modules.ts) (catálogo) + `GET /api/menu` (ver
+  "Menú dinámico") + [`lib/menu/useMenu.ts`](lib/menu/useMenu.ts) (consumo con SWR).
+- **Formularios y listas del curso 2**: [`lib/forms/useFormState.ts`](lib/forms/useFormState.ts)
+  (validación por campo + mapeo de errores de la API), [`lib/validation/v2.ts`](lib/validation/v2.ts)
+  (reglas), [`lib/v2/reglas.ts`](lib/v2/reglas.ts) (simulaciones: préstamos, depósitos, ahorro,
+  tope de transferencias) y [`lib/list/useListControls.ts`](lib/list/useListControls.ts)
+  (búsqueda/orden/paginación en la URL).
 
 ## Deploy (Vercel)
 
