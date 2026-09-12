@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import shared from "@/components/shared.module.css";
 import { DataState } from "@/components/DataState";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { DeleteButton } from "@/components/DeleteButton";
-import { getBeneficiarioV2, actualizarBeneficiarioV2, eliminarBeneficiarioV2 } from "@/lib/api/v2/beneficiarios";
-import { ApiError } from "@/lib/api/http";
+import { FormError } from "@/components/form/Field";
+import { useToast } from "@/components/Toast";
+import { BENEFICIARIO_API_ERRORS, BeneficiarioFields, validarBeneficiario } from "@/components/v2/BeneficiarioFields";
+import { Fecha } from "@/components/Valores";
+import {
+  actualizarBeneficiarioV2,
+  eliminarBeneficiarioV2,
+  getBeneficiarioV2,
+  type BeneficiarioV2,
+} from "@/lib/api/v2/beneficiarios";
+import { useFormState } from "@/lib/forms/useFormState";
 import { testIds } from "@/lib/testids";
 
 const ids = testIds("v2-beneficiarios");
@@ -16,146 +26,141 @@ const ids = testIds("v2-beneficiarios");
 export default function BeneficiarioV2DetallePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const id = Number(params.id);
 
-  const { data: beneficiario, error, isLoading, mutate } = useSWR(["v2-beneficiario", id], () =>
-    getBeneficiarioV2(id),
-  );
-
-  const [nombre, setNombre] = useState("");
-  const [banco, setBanco] = useState("");
-  const [numeroCuenta, setNumeroCuenta] = useState("");
-  const [alias, setAlias] = useState("");
-  const [initialized, setInitialized] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  if (beneficiario && !initialized) {
-    setNombre(beneficiario.nombre);
-    setBanco(beneficiario.banco);
-    setNumeroCuenta(beneficiario.numero_cuenta);
-    setAlias(beneficiario.alias ?? "");
-    setInitialized(true);
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setSubmitting(true);
-    setFormError(null);
-    try {
-      const updated = await actualizarBeneficiarioV2(id, {
-        nombre,
-        banco,
-        numeroCuenta,
-        alias: alias.trim() || undefined,
-      });
-      await mutate(updated, { revalidate: false });
-    } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "No se pudo actualizar el beneficiario.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const { data: beneficiario, error, isLoading, mutate } = useSWR(["v2-beneficiario", id], () => getBeneficiarioV2(id));
 
   return (
     <div className={shared.page}>
-      <ModuleHeader moduleKey="v2-beneficiarios" title={`Beneficiario #${id}`} />
+      <Link href="/v2/beneficiarios" className={shared.backLink}>
+        ← Beneficiarios
+      </Link>
+      <ModuleHeader moduleKey="v2-beneficiarios" title={beneficiario ? (beneficiario.alias ?? beneficiario.nombre) : `Beneficiario #${id}`}>
+        {beneficiario && (
+          <Link
+            href={`/v2/transferencias/new?tipo=beneficiario&beneficiarioId=${id}&usuarioId=${beneficiario.usuario_id}`}
+            className={shared.button}
+            data-testid={ids.rowAction(id, "transferir")}
+          >
+            Transferir
+          </Link>
+        )}
+      </ModuleHeader>
 
       <DataState loading={isLoading} error={error ?? null} loadingTestId={ids.loading} errorTestId={ids.error}>
         {beneficiario && (
           <>
             <dl className={`${shared.card} ${shared.detailGrid}`} data-testid={ids.detail}>
               <div className={shared.detailField}>
-                <dt>Nombre</dt>
-                <dd>{beneficiario.nombre}</dd>
+                <dt>Titular de la cuenta</dt>
+                <dd data-testid="v2-beneficiarios-detail-nombre">{beneficiario.nombre}</dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Banco</dt>
-                <dd>{beneficiario.banco}</dd>
+                <dd data-testid="v2-beneficiarios-detail-banco">{beneficiario.banco}</dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Número de cuenta</dt>
-                <dd>{beneficiario.numero_cuenta}</dd>
+                <dd data-testid="v2-beneficiarios-detail-numero">{beneficiario.numero_cuenta}</dd>
               </div>
               <div className={shared.detailField}>
-                <dt>Alias</dt>
-                <dd>{beneficiario.alias ?? "—"}</dd>
+                <dt>Agendado por</dt>
+                <dd>
+                  <Link href={`/v2/usuarios/${beneficiario.usuario_id}`}>Cliente #{beneficiario.usuario_id}</Link>
+                </dd>
               </div>
               <div className={shared.detailField}>
-                <dt>Activo</dt>
-                <dd>{beneficiario.activo ? "Sí" : "No"}</dd>
+                <dt>Agendado el</dt>
+                <dd>
+                  <Fecha value={beneficiario.created_at} />
+                </dd>
               </div>
             </dl>
 
-            <form className={shared.formGrid} onSubmit={handleSubmit} data-testid={ids.rowAction(id, "edit-form")}>
-              <h2>Editar beneficiario</h2>
-              <div className={shared.field}>
-                <label htmlFor="nombre">Nombre</label>
-                <input
-                  id="nombre"
-                  required
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  data-testid={ids.field("edit-nombre")}
-                />
-              </div>
-              <div className={shared.field}>
-                <label htmlFor="banco">Banco</label>
-                <input
-                  id="banco"
-                  required
-                  value={banco}
-                  onChange={(e) => setBanco(e.target.value)}
-                  data-testid={ids.field("edit-banco")}
-                />
-              </div>
-              <div className={shared.field}>
-                <label htmlFor="numeroCuenta">Número de cuenta</label>
-                <input
-                  id="numeroCuenta"
-                  required
-                  value={numeroCuenta}
-                  onChange={(e) => setNumeroCuenta(e.target.value)}
-                  data-testid={ids.field("edit-numeroCuenta")}
-                />
-              </div>
-              <div className={shared.field}>
-                <label htmlFor="alias">Alias</label>
-                <input
-                  id="alias"
-                  value={alias}
-                  onChange={(e) => setAlias(e.target.value)}
-                  data-testid={ids.field("edit-alias")}
-                />
-              </div>
-
-              {formError && (
-                <p role="alert" className={shared.fieldError} data-testid={ids.fieldError("edit-nombre")}>
-                  {formError}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className={shared.button}
-                disabled={submitting}
-                data-testid={ids.rowAction(id, "edit-submit")}
-              >
-                {submitting ? "Guardando..." : "Guardar cambios"}
-              </button>
-            </form>
+            <EditarBeneficiarioForm
+              key={`${beneficiario.nombre}-${beneficiario.banco}-${beneficiario.numero_cuenta}-${beneficiario.alias}`}
+              beneficiario={beneficiario}
+              onSaved={async (updated) => {
+                await mutate(updated, { revalidate: false });
+                toast.success("Beneficiario actualizado.");
+              }}
+            />
 
             <DeleteButton
               testId={ids.rowAction(id, "eliminar")}
-              title="¿Eliminar este beneficiario?"
-              description="Se marcará como inactivo y dejará de listarse."
-              label="Eliminar beneficiario"
+              title="¿Quitar este beneficiario?"
+              description="Deja de aparecer al transferir. Las transferencias ya hechas no se modifican."
+              label="Quitar beneficiario"
               onDelete={() => eliminarBeneficiarioV2(id)}
-              onDeleted={() => router.push("/v2/beneficiarios")}
+              onDeleted={() => {
+                toast.success("Beneficiario quitado.");
+                router.push("/v2/beneficiarios");
+              }}
             />
           </>
         )}
       </DataState>
     </div>
+  );
+}
+
+function EditarBeneficiarioForm({
+  beneficiario,
+  onSaved,
+}: {
+  beneficiario: BeneficiarioV2;
+  onSaved: (b: BeneficiarioV2) => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const form = useFormState({
+    initial: {
+      nombre: beneficiario.nombre,
+      banco: beneficiario.banco,
+      numeroCuenta: beneficiario.numero_cuenta,
+      alias: beneficiario.alias ?? "",
+    },
+    ids,
+    idPrefix: "edit-",
+    validate: validarBeneficiario,
+  });
+  const sinCambios =
+    form.values.nombre.trim() === beneficiario.nombre &&
+    form.values.banco === beneficiario.banco &&
+    form.values.numeroCuenta.trim() === beneficiario.numero_cuenta &&
+    form.values.alias.trim() === (beneficiario.alias ?? "");
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!form.validateFields()) return;
+    setSubmitting(true);
+    try {
+      const updated = await actualizarBeneficiarioV2(beneficiario.id, {
+        nombre: form.values.nombre.trim(),
+        banco: form.values.banco,
+        numeroCuenta: form.values.numeroCuenta.trim(),
+        alias: form.values.alias.trim() || undefined,
+      });
+      await onSaved(updated);
+    } catch (err) {
+      form.applyApiError(err, BENEFICIARIO_API_ERRORS, "No se pudo actualizar el beneficiario.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className={shared.formGrid} onSubmit={handleSubmit} noValidate data-testid={ids.rowAction(beneficiario.id, "edit-form")}>
+      <h2>Editar datos</h2>
+      <BeneficiarioFields form={form} />
+      <FormError form={form} />
+      <button
+        type="submit"
+        className={shared.button}
+        disabled={submitting || sinCambios}
+        data-testid={ids.rowAction(beneficiario.id, "edit-submit")}
+      >
+        {submitting ? "Guardando..." : "Guardar cambios"}
+      </button>
+    </form>
   );
 }
