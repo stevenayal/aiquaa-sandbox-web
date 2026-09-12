@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ApiError } from "@/lib/api/http";
 import type { FieldErrors } from "@/lib/validation/v2";
 import type { testIds } from "@/lib/testids";
@@ -20,6 +20,8 @@ interface Options<T extends Record<string, string>> {
 export interface ApiErrorRule<K extends string> {
   field: K;
   when: (error: ApiError) => boolean;
+  /** Mensaje para el usuario; sin él se muestra el de la API (que en un 409 de UNIQUE es el texto crudo de Postgres). */
+  message?: string;
 }
 
 export const mensajeContiene =
@@ -55,6 +57,23 @@ export function useFormState<T extends Record<string, string>>({ initial, valida
     return `${idPrefix}${name}`;
   }
 
+  // Campo a enfocar después del próximo render: puede no estar montado todavía
+  // (ej. un error de la API que corresponde a un paso anterior del wizard, al
+  // que se vuelve en el mismo handler). Se reintenta en cada render hasta que aparece.
+  const pendingFocus = useRef<K | null>(null);
+  useEffect(() => {
+    if (!pendingFocus.current) return;
+    const el = document.getElementById(domId(pendingFocus.current));
+    if (el) {
+      el.focus();
+      pendingFocus.current = null;
+    }
+  });
+
+  function focusField(name: K) {
+    pendingFocus.current = name;
+  }
+
   function setValue(name: K, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
     setServerErrors((prev) => {
@@ -75,8 +94,7 @@ export function useFormState<T extends Record<string, string>>({ initial, valida
     setTouched((prev) => new Set([...prev, ...fields]));
     const invalid = fields.find((f) => validationErrors[f]);
     if (invalid) {
-      // El error recién se pinta en el próximo render; el foco puede ir ya.
-      document.getElementById(domId(invalid))?.focus();
+      focusField(invalid);
       return false;
     }
     return true;
@@ -96,8 +114,8 @@ export function useFormState<T extends Record<string, string>>({ initial, valida
       setFormError(error.message);
       return null;
     }
-    setServerErrors((prev) => ({ ...prev, [rule.field]: error.message }));
-    document.getElementById(domId(rule.field))?.focus();
+    setServerErrors((prev) => ({ ...prev, [rule.field]: rule.message ?? error.message }));
+    focusField(rule.field);
     return rule.field;
   }
 
