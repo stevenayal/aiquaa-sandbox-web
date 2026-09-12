@@ -1,6 +1,6 @@
 import { ApiError, apiRequest } from "./http";
 import { listUsuariosV2 } from "./v2/usuarios";
-import { ADMIN_ID_V2, esAdminV2 } from "@/lib/v2/admin";
+import { ADMIN_ID, esAdmin } from "@/lib/auth/admin";
 
 export interface Usuario {
   id: number;
@@ -17,7 +17,14 @@ export interface Sesion {
   ip: string | null;
 }
 
-export function login(email: string) {
+/**
+ * El admin (ver lib/auth/admin.ts) es un concepto del front: no hace falta
+ * que exista como usuario en la base de curso 1 para poder entrar.
+ */
+export async function login(email: string): Promise<Usuario> {
+  if (esAdmin(email)) {
+    return { id: ADMIN_ID, nombre: "Administrador", email: email.trim().toLowerCase(), activo: true };
+  }
   return apiRequest<Usuario>("auth/login", { method: "POST", body: { email } });
 }
 
@@ -41,10 +48,10 @@ export function resetPassword(usuarioId: number) {
  * distinguir de qué curso salió la sesión.
  */
 export async function loginV2(email: string): Promise<Usuario> {
-  // El admin del curso 2 es un concepto del front (ver lib/v2/admin.ts): no
-  // hace falta que exista como cliente en la base para poder entrar.
-  if (esAdminV2(email)) {
-    return { id: ADMIN_ID_V2, nombre: "Administrador", email: email.trim().toLowerCase(), activo: true };
+  // El admin (ver lib/auth/admin.ts) es un concepto del front: no hace falta
+  // que exista como cliente en la base para poder entrar.
+  if (esAdmin(email)) {
+    return { id: ADMIN_ID, nombre: "Administrador", email: email.trim().toLowerCase(), activo: true };
   }
   const usuarios = await listUsuariosV2(email);
   const match = usuarios.find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? usuarios[0];

@@ -9,6 +9,7 @@ import { CURSO_LABELS, useCurso } from "@/lib/auth/CursoContext";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
 import { useMenu } from "@/lib/menu/useMenu";
 import { logout as logoutRequest } from "@/lib/api/auth";
+import { esAdmin } from "@/lib/auth/admin";
 import { ModuleIcon } from "@/components/icons/ModuleIcons";
 
 function isActive(pathname: string, href: string): boolean {
@@ -27,8 +28,9 @@ export function Nav() {
   const showSectionLabels = (menu?.secciones.length ?? 0) > 1;
 
   async function handleLogout() {
-    // El logout remoto es un endpoint de v1: en el curso 2 no hay sesión que cerrar del lado del backend.
-    if (usuario && curso === 1) {
+    // El logout remoto es un endpoint de v1: en el curso 2 no hay sesión que
+    // cerrar del lado del backend, y el admin (id sentinela) tampoco existe ahí.
+    if (usuario && curso === 1 && !esAdmin(usuario.email)) {
       try {
         await logoutRequest(usuario.id);
       } catch {
