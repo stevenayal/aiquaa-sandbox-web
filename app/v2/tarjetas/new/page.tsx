@@ -12,7 +12,7 @@ import { ClienteSelect, CuentaSelect } from "@/components/v2/EntitySelects";
 import { TarjetaPlastico, VencimientoFields } from "@/components/v2/Tarjeta";
 import { emitirTarjetaV2, type MarcaTarjetaV2, type TipoTarjetaV2 } from "@/lib/api/v2/tarjetas";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
-import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
+import { defaultUsuarioId } from "@/lib/auth/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
@@ -34,7 +34,7 @@ export default function NuevaTarjetaV2Page() {
   const vencPorDefecto = new Date();
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioId(usuario),
       tipo: "credito",
       marca: "visa",
       cuentaId: "",

@@ -18,7 +18,7 @@ import { Monto } from "@/components/Valores";
 import { crearTransferenciaV2, listTransferenciasV2, type TransferenciaV2 } from "@/lib/api/v2/transferencias";
 import type { MonedaV2 } from "@/lib/api/v2/cuentas";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
-import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
+import { defaultUsuarioId } from "@/lib/auth/admin";
 import { useFormState, mensajeContiene } from "@/lib/forms/useFormState";
 import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
@@ -49,7 +49,7 @@ export default function NuevaTransferenciaV2Page() {
   const [resultado, setResultado] = useState<TransferenciaV2 | null>(null);
 
   const inicial: Valores = {
-    usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
+    usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioId(usuario),
     tipo: searchParams.get("tipo") === "beneficiario" ? "beneficiario" : "propia",
     cuentaOrigenId: searchParams.get("cuentaOrigenId") ?? "",
     cuentaDestinoId: "",
