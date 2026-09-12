@@ -86,6 +86,7 @@ semántico real (`<table>`, `<form>`, `<label htmlFor>`, `<button>` — nunca re
 | Patrón | Uso |
 |---|---|
 | `{modulo}-loading` / `-error` / `-empty` | Estados de carga de una lista o detalle |
+| `{modulo}-count` | Cantidad de resultados de la lista (`"3 resultados"`) |
 | `{modulo}-list` | Contenedor de la tabla/lista |
 | `{modulo}-row-{id}` | Fila individual |
 | `{modulo}-row-{id}-{accion}` | Botón de acción sobre una fila (ej. `tarjetas-row-3-bloquear`) |
@@ -97,6 +98,21 @@ semántico real (`<table>`, `<form>`, `<label htmlFor>`, `<button>` — nunca re
 | `{modulo}-success` | Mensaje de confirmación (`role="status"`) |
 | `{testId}-confirm-dialog` / `-confirm-accept` / `-confirm-cancel` | Modal de confirmación (`role="alertdialog"`) antes de una acción irreversible — ver [`components/ConfirmDialog.tsx`](components/ConfirmDialog.tsx) |
 
+### Montos y fechas: `data-value`
+
+Los montos, porcentajes y fechas se muestran formateados (`PYG 5.000.000,00`, `18,00 %`,
+`04/09/2026, 02:28`) y llevan el valor crudo del backend en `data-value`
+(`"5000000.00"`, `"18.00"`, `"2026-09-04T02:28:11.356Z"`) — ver
+[`components/Valores.tsx`](components/Valores.tsx) y [`lib/format.ts`](lib/format.ts).
+
+Para automatizar, asertá contra `data-value`: no depende del locale del browser ni de los
+separadores de miles.
+
+```js
+await expect(page.getByTestId("v2-cuentas-row-1")
+  .locator("[data-value]").first()).toHaveAttribute("data-value", "5000000.00");
+```
+
 Definido en [`lib/testids.ts`](lib/testids.ts).
 
 ## Módulos
@@ -106,16 +122,35 @@ sigue la forma real de sus endpoints (no todos tienen list+detail simétrico):
 
 | Módulo | Rutas | Notas |
 |---|---|---|
-| Usuarios | `/usuarios/new`, `/usuarios/[id]` | Sin "listar todos"; `[id]` es detalle + cambio de estado KYC |
+| Usuarios | `/usuarios`, `/usuarios/new`, `/usuarios/[id]` | `[id]` es el hub "Usuario 360": detalle + KYC + sus cuentas, tarjetas, facturas, órdenes, reservas, notificaciones y roles |
 | Cuentas | `/cuentas`, `/cuentas/[id]` | List + detail estándar |
 | Transferencias | `/transferencias`, `/transferencias/[id]` | Sin lista: la raíz es el form de creación |
 | Facturas | `/facturas`, `/facturas/[id]` | Detail incluye mini-form "pagar" |
 | Órdenes | `/ordenes`, `/ordenes/new`, `/ordenes/[id]` | `new` tiene items dinámicos (agregar/quitar filas) |
-| Tarjetas | `/tarjetas`, `/tarjetas/new` | Sin detail; bloquear/activar inline en la lista |
-| Notificaciones | `/notificaciones`, `/notificaciones/new` | Sin detail; marcar leída inline en la lista |
-| Reservas | `/reservas`, `/reservas/new` | Sin detail (el backend no expone `GET /reservas/{id}`); confirmar/cancelar inline |
+| Tarjetas | `/tarjetas`, `/tarjetas/new`, `/tarjetas/[id]` | Bloquear/activar inline en la lista; el detail edita tipo, marca y límite |
+| Notificaciones | `/notificaciones`, `/notificaciones/new`, `/notificaciones/[id]` | Marcar leída inline en la lista |
+| Reservas | `/reservas`, `/reservas/new`, `/reservas/[id]` | Confirmar/cancelar inline en la lista |
 | Roles | `/roles` | No es list+detail: 4 toggles asignar/revocar contra el usuario logueado |
 | Reportes | `/reportes` | Solo lectura, con filtros de fecha |
+| Sesiones | `/sesiones`, `/sesiones/new`, `/sesiones/[id]` | Grupo 1: CRUD completo de eventos de auditoría |
+| Movimientos | `/movimientos`, `/movimientos/new`, `/movimientos/[id]` | Grupo 9, junto con Reportes |
+
+### Curso 2 — Productos Bancarios (`/v2/**`)
+
+Cohorte aparte: otro schema, otras API keys (ver "Login en dos capas") y 5 grupos propios.
+Los nombres se repiten (cuentas, tarjetas, transferencias) pero son recursos distintos de los
+del curso 1.
+
+| Módulo | Rutas | Notas |
+|---|---|---|
+| Clientes | `/v2/usuarios`, `/v2/usuarios/new`, `/v2/usuarios/[id]` | Transversal: de acá sale el `usuarioId` del resto |
+| Cuentas | `/v2/cuentas`, `/v2/cuentas/new`, `/v2/cuentas/[id]` | Grupo 1. El detail incluye saldo, movimientos (alta inline) y cambio de estado |
+| Tarjetas | `/v2/tarjetas`, `/v2/tarjetas/new`, `/v2/tarjetas/[id]` | Grupo 2. Bloquear/activar/límite inline y en el detail, que además edita marca y vencimiento |
+| Préstamos | `/v2/prestamos`, `/v2/prestamos/new`, `/v2/prestamos/[id]` | Grupo 3. El detail aprueba y paga cuotas |
+| Beneficiarios | `/v2/beneficiarios`, `/v2/beneficiarios/new`, `/v2/beneficiarios/[id]` | Grupo 4, con Transferencias |
+| Transferencias | `/v2/transferencias`, `/v2/transferencias/[id]` | Grupo 4. La raíz es form + lista; el detail permite anular |
+| Ahorros | `/v2/ahorros`, `/v2/ahorros/new`, `/v2/ahorros/[id]` | Grupo 5. El detail registra aportes |
+| Depósitos | `/v2/depositos`, `/v2/depositos/new`, `/v2/depositos/[id]` | Grupo 5. El detail permite cancelar antes del vencimiento |
 
 ## Buenas prácticas de UX aplicadas
 
@@ -135,6 +170,10 @@ sesión (Ley de Tesler). Se sumó:
   usuario.
 - **Atención selectiva** — el total estimado de una orden nueva se resalta brevemente al
   recalcularse, para que un cambio de cantidad/precio no pase desapercibido.
+- **Carga cognitiva** — montos, porcentajes y fechas formateados en todos los módulos de los
+  dos cursos (`1500000.00` → `PYG 1.500.000,00`), con el valor crudo en `data-value` para no
+  romper la automatización; y cada lista dice cuántos resultados trajo (`{modulo}-count`),
+  que en las de hasta 100 filas evita contar filas a ojo.
 
 ## Arquitectura
 

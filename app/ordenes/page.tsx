@@ -8,6 +8,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listOrdenes } from "@/lib/api/ordenes";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("ordenes");
 
@@ -41,6 +42,8 @@ export default function OrdenesPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(ordenes?.length ?? 0) === 0}
+        count={ordenes?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -65,7 +68,9 @@ export default function OrdenesPage() {
                   <Link href={`/usuarios/${orden.usuario_id}`}>{orden.usuario_id}</Link>
                 </td>
                 <td>{orden.producto}</td>
-                <td>{orden.monto}</td>
+                <td>
+                  <Monto value={orden.monto} />
+                </td>
                 <td>{orden.estado}</td>
               </tr>
             ))}

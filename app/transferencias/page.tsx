@@ -10,6 +10,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearTransferencia, listTransferencias } from "@/lib/api/transferencias";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 // La raíz del módulo nació como solo el form de creación (no había GET de
 // lista); ahora que el backend expone GET /transferencias, se agrega la
@@ -160,6 +161,8 @@ export default function NuevaTransferenciaPage() {
         loading={listLoading}
         error={listError ?? null}
         empty={(transferencias?.length ?? 0) === 0}
+        count={transferencias?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -188,12 +191,16 @@ export default function NuevaTransferenciaPage() {
                 <td>
                   <Link href={`/cuentas/${transferencia.cuenta_destino_id}`}>{transferencia.cuenta_destino_id}</Link>
                 </td>
-                <td>{transferencia.monto}</td>
+                <td>
+                  <Monto value={transferencia.monto} />
+                </td>
                 <td>{transferencia.descripcion ?? "—"}</td>
                 <td>
                   <span className={badgeClass(transferencia.estado)}>{transferencia.estado}</span>
                 </td>
-                <td>{new Date(transferencia.created_at).toLocaleString()}</td>
+                <td>
+                  <Fecha value={transferencia.created_at} conHora />
+                </td>
               </tr>
             ))}
           </tbody>

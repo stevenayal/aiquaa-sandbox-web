@@ -8,6 +8,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listCuentas } from "@/lib/api/cuentas";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("cuentas");
 
@@ -38,6 +39,8 @@ export default function CuentasPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(cuentas?.length ?? 0) === 0}
+        count={cuentas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -66,7 +69,9 @@ export default function CuentasPage() {
                 <td>{cuenta.numero_cuenta}</td>
                 <td>{cuenta.tipo_cuenta}</td>
                 <td>{cuenta.moneda}</td>
-                <td>{cuenta.saldo}</td>
+                <td>
+                  <Monto value={cuenta.saldo} moneda={cuenta.moneda} />
+                </td>
                 <td>{cuenta.activa ? "Sí" : "No"}</td>
               </tr>
             ))}

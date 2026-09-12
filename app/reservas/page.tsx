@@ -11,6 +11,7 @@ import { listReservas, confirmarReserva, cancelarReserva } from "@/lib/api/reser
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("reservas");
 
@@ -80,6 +81,8 @@ export default function ReservasPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(reservas?.length ?? 0) === 0}
+        count={reservas?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -106,7 +109,9 @@ export default function ReservasPage() {
                   <Link href={`/usuarios/${reserva.usuario_id}`}>{reserva.usuario_id}</Link>
                 </td>
                 <td>{reserva.servicio}</td>
-                <td>{reserva.fecha_hora}</td>
+                <td>
+                  <Fecha value={reserva.fecha_hora} conHora />
+                </td>
                 <td>{reserva.notas ?? "—"}</td>
                 <td>
                   <span className={badgeClass(reserva.estado)}>{reserva.estado}</span>

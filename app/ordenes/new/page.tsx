@@ -9,6 +9,7 @@ import { crearOrden, type ItemOrdenInput } from "@/lib/api/ordenes";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { formatMonto } from "@/lib/format";
 
 const ids = testIds("ordenes");
 
@@ -144,7 +145,7 @@ export default function NuevaOrdenPage() {
         </button>
 
         <p>
-          Total estimado: <strong key={totalEstimado} className={styles.total}>{totalEstimado.toFixed(2)}</strong> (el
+          Total estimado: <strong key={totalEstimado} className={styles.total}>{formatMonto(totalEstimado)}</strong> (el
           monto real lo calcula el servidor)
         </p>
 

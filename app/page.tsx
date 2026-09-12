@@ -21,9 +21,14 @@ export default function Home() {
   const showBothCursos = visibleModules.v1.length > 0 && visibleModules.v2.length > 0;
   const nombre = rosterEntry?.nombre ?? usuario?.nombre;
 
+  // Sin módulos de curso 1 visibles la sesión es de curso 2: ahí "usuario" es
+  // un cliente del banco (/v2/usuarios/{id}), y el detalle de v1 solo podría
+  // dar 401/403 o mostrar otro registro con el mismo id.
+  const usuarioBase = visibleModules.v1.length > 0 ? "/usuarios" : "/v2/usuarios";
+
   function handleBuscarUsuario(event: FormEvent) {
     event.preventDefault();
-    if (buscarId.trim()) router.push(`/usuarios/${buscarId.trim()}`);
+    if (buscarId.trim()) router.push(`${usuarioBase}/${buscarId.trim()}`);
   }
 
   return (
@@ -33,7 +38,7 @@ export default function Home() {
 
       <form className={styles.search} onSubmit={handleBuscarUsuario} data-testid="home-buscar-usuario">
         <div className={shared.field}>
-          <label htmlFor="buscarId">Ir a usuario (id)</label>
+          <label htmlFor="buscarId">{usuarioBase === "/usuarios" ? "Ir a usuario (id)" : "Ir a cliente (id)"}</label>
           <input
             id="buscarId"
             value={buscarId}

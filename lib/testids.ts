@@ -8,6 +8,7 @@ export function testIds(modulo: string) {
     loading: `${modulo}-loading`,
     error: `${modulo}-error`,
     empty: `${modulo}-empty`,
+    count: `${modulo}-count`,
     success: `${modulo}-success`,
     list: `${modulo}-list`,
     row: (id: string | number) => `${modulo}-row-${id}`,

@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/movimientos";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("movimientos");
 const TIPOS: TipoMovimiento[] = ["transferencia", "pago_factura", "compra_ecommerce", "cargo_tarjeta"];
@@ -84,7 +85,9 @@ export default function MovimientoDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{movimiento.monto}</dd>
+                <dd>
+                  <Monto value={movimiento.monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Referencia</dt>
@@ -96,7 +99,9 @@ export default function MovimientoDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha</dt>
-                <dd>{new Date(movimiento.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={movimiento.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

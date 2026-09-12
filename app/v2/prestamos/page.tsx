@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listPrestamosV2, type EstadoPrestamoV2 } from "@/lib/api/v2/prestamos";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Monto, Porcentaje } from "@/components/Valores";
 
 const ids = testIds("v2-prestamos");
 const ESTADOS: EstadoPrestamoV2[] = ["solicitado", "aprobado", "rechazado", "pagado"];
@@ -33,7 +34,7 @@ export default function PrestamosV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-prestamos" title="Préstamos">
         <div className={shared.field}>
-          <label htmlFor="usuarioId">usuarioId</label>
+          <label htmlFor="usuarioId">Filtrar por usuarioId</label>
           <input
             id="usuarioId"
             value={usuarioId}
@@ -67,6 +68,8 @@ export default function PrestamosV2Page() {
         loading={isLoading}
         error={error ?? null}
         empty={(prestamos?.length ?? 0) === 0}
+        count={prestamos?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -92,10 +95,16 @@ export default function PrestamosV2Page() {
                 <td>
                   <Link href={`/v2/usuarios/${prestamo.usuario_id}`}>{prestamo.usuario_id}</Link>
                 </td>
-                <td>{prestamo.monto_solicitado}</td>
-                <td>{prestamo.tasa_interes}</td>
+                <td>
+                  <Monto value={prestamo.monto_solicitado} />
+                </td>
+                <td>
+                  <Porcentaje value={prestamo.tasa_interes} />
+                </td>
                 <td>{prestamo.plazo_meses}</td>
-                <td>{prestamo.saldo_pendiente}</td>
+                <td>
+                  <Monto value={prestamo.saldo_pendiente} />
+                </td>
                 <td>
                   <span className={badgeClass(prestamo.estado)}>{prestamo.estado}</span>
                 </td>

@@ -11,6 +11,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getCuenta, actualizarCuenta, eliminarCuenta } from "@/lib/api/cuentas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Monto } from "@/components/Valores";
 
 const ids = testIds("cuentas");
 const TIPOS_CUENTA = ["ahorro", "corriente"] as const;
@@ -81,7 +82,9 @@ export default function CuentaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Saldo</dt>
-                <dd>{cuenta.saldo}</dd>
+                <dd>
+                  <Monto value={cuenta.saldo} moneda={cuenta.moneda} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Activa</dt>

@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { getDepositoV2, cancelarDepositoV2, type EstadoDepositoV2 } from "@/lib/api/v2/depositos";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto, Porcentaje } from "@/components/Valores";
 
 const ids = testIds("v2-depositos");
 
@@ -64,11 +65,15 @@ export default function DepositoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{deposito.monto}</dd>
+                <dd>
+                  <Monto value={deposito.monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Tasa anual</dt>
-                <dd>{deposito.tasa_anual}</dd>
+                <dd>
+                  <Porcentaje value={deposito.tasa_anual} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Plazo (días)</dt>
@@ -76,19 +81,27 @@ export default function DepositoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha de inicio</dt>
-                <dd>{new Date(deposito.fecha_inicio).toLocaleDateString()}</dd>
+                <dd>
+                  <Fecha value={deposito.fecha_inicio} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha de vencimiento</dt>
-                <dd>{new Date(deposito.fecha_vencimiento).toLocaleDateString()}</dd>
+                <dd>
+                  <Fecha value={deposito.fecha_vencimiento} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Interés generado</dt>
-                <dd>{deposito.interes_generado}</dd>
+                <dd>
+                  <Monto value={deposito.interes_generado} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Interés proyectado</dt>
-                <dd>{deposito.interes_proyectado}</dd>
+                <dd>
+                  <Monto value={deposito.interes_proyectado} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Días restantes</dt>
@@ -102,7 +115,9 @@ export default function DepositoV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Creado</dt>
-                <dd>{new Date(deposito.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={deposito.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

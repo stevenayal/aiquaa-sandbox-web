@@ -16,6 +16,7 @@ import {
 } from "@/lib/api/notificaciones";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha } from "@/components/Valores";
 
 const ids = testIds("notificaciones");
 const CANALES: NotificacionCanal[] = ["push", "email", "sms"];
@@ -93,7 +94,9 @@ export default function NotificacionDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Fecha</dt>
-                <dd>{new Date(notificacion.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={notificacion.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

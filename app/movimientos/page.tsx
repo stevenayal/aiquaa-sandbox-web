@@ -8,6 +8,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { listMovimientosDetalle } from "@/lib/api/movimientos";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("movimientos");
 
@@ -44,6 +45,8 @@ export default function MovimientosPage() {
         loading={isLoading}
         error={error ?? null}
         empty={(movimientos?.length ?? 0) === 0}
+        count={movimientos?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -70,10 +73,14 @@ export default function MovimientosPage() {
                   <Link href={`/usuarios/${movimiento.usuario_id}`}>{movimiento.usuario_id}</Link>
                 </td>
                 <td>{movimiento.tipo_movimiento}</td>
-                <td>{movimiento.monto}</td>
+                <td>
+                  <Monto value={movimiento.monto} />
+                </td>
                 <td>{movimiento.referencia_id ?? "—"}</td>
                 <td>{movimiento.descripcion ?? "—"}</td>
-                <td>{new Date(movimiento.created_at).toLocaleString()}</td>
+                <td>
+                  <Fecha value={movimiento.created_at} conHora />
+                </td>
               </tr>
             ))}
           </tbody>

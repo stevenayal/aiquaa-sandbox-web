@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/v2/ahorros";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto, Porcentaje } from "@/components/Valores";
 
 const ids = testIds("v2-ahorros");
 
@@ -114,23 +115,33 @@ export default function AhorroV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto meta</dt>
-                <dd>{ahorro.meta_monto}</dd>
+                <dd>
+                  <Monto value={ahorro.meta_monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Aporte mensual</dt>
-                <dd>{ahorro.aporte_mensual}</dd>
+                <dd>
+                  <Monto value={ahorro.aporte_mensual} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Acumulado</dt>
-                <dd>{ahorro.saldo_acumulado}</dd>
+                <dd>
+                  <Monto value={ahorro.saldo_acumulado} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Falta para meta</dt>
-                <dd>{ahorro.falta_para_meta}</dd>
+                <dd>
+                  <Monto value={ahorro.falta_para_meta} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Tasa anual</dt>
-                <dd>{ahorro.tasa_anual}</dd>
+                <dd>
+                  <Porcentaje value={ahorro.tasa_anual} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>
@@ -140,7 +151,9 @@ export default function AhorroV2DetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Creado</dt>
-                <dd>{new Date(ahorro.created_at).toLocaleString()}</dd>
+                <dd>
+                  <Fecha value={ahorro.created_at} conHora />
+                </dd>
               </div>
             </dl>
 

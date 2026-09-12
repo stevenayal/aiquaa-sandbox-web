@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/facturas";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("facturas");
 const METODOS: MetodoPago[] = ["tarjeta", "cuenta", "efectivo"];
@@ -117,11 +118,15 @@ export default function FacturaDetallePage() {
               </div>
               <div className={shared.detailField}>
                 <dt>Monto</dt>
-                <dd>{factura.monto}</dd>
+                <dd>
+                  <Monto value={factura.monto} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Vencimiento</dt>
-                <dd>{factura.fecha_vencimiento}</dd>
+                <dd>
+                  <Fecha value={factura.fecha_vencimiento} />
+                </dd>
               </div>
               <div className={shared.detailField}>
                 <dt>Estado</dt>

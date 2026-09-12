@@ -8,6 +8,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { getMovimientos, getResumen } from "@/lib/api/reportes";
 import { useDefaultUsuarioId } from "@/lib/auth/useDefaultUsuarioId";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 // Dashboard de solo lectura: sin patrón create/row/acción (desviación
 // documentada en la sección 4 del plan).
@@ -84,15 +85,21 @@ export default function ReportesPage() {
             </div>
             <div className={shared.detailField}>
               <dt>Total</dt>
-              <dd>{resumen.total}</dd>
+              <dd>
+                <Monto value={resumen.total} />
+              </dd>
             </div>
             <div className={shared.detailField}>
               <dt>Primero</dt>
-              <dd>{resumen.primero ?? "—"}</dd>
+              <dd>
+                <Fecha value={resumen.primero} conHora />
+              </dd>
             </div>
             <div className={shared.detailField}>
               <dt>Último</dt>
-              <dd>{resumen.ultimo ?? "—"}</dd>
+              <dd>
+                <Fecha value={resumen.ultimo} conHora />
+              </dd>
             </div>
           </div>
         )}
@@ -102,6 +109,8 @@ export default function ReportesPage() {
         loading={movimientosLoading}
         error={movimientosError ?? null}
         empty={(movimientos?.length ?? 0) === 0}
+        count={movimientos?.length ?? 0}
+        countTestId={movimientosIds.count}
         loadingTestId={movimientosIds.loading}
         errorTestId={movimientosIds.error}
         emptyTestId={movimientosIds.empty}
@@ -119,7 +128,9 @@ export default function ReportesPage() {
               <tr key={m.tipo_movimiento} data-testid={movimientosIds.row(m.tipo_movimiento)}>
                 <td>{m.tipo_movimiento}</td>
                 <td>{m.cantidad}</td>
-                <td>{m.total}</td>
+                <td>
+                  <Monto value={m.total} />
+                </td>
               </tr>
             ))}
           </tbody>

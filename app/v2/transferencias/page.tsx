@@ -9,6 +9,7 @@ import { ModuleHeader } from "@/components/ModuleHeader";
 import { crearTransferenciaV2, listTransferenciasV2, type EstadoTransferenciaV2 } from "@/lib/api/v2/transferencias";
 import { ApiError } from "@/lib/api/http";
 import { testIds } from "@/lib/testids";
+import { Fecha, Monto } from "@/components/Valores";
 
 const ids = testIds("v2-transferencias");
 const ESTADOS: EstadoTransferenciaV2[] = ["pendiente", "completada", "rechazada", "anulada"];
@@ -185,6 +186,8 @@ export default function TransferenciasV2Page() {
         loading={listLoading}
         error={listError ?? null}
         empty={(transferencias?.length ?? 0) === 0}
+        count={transferencias?.length ?? 0}
+        countTestId={ids.count}
         loadingTestId={ids.loading}
         errorTestId={ids.error}
         emptyTestId={ids.empty}
@@ -211,12 +214,16 @@ export default function TransferenciasV2Page() {
                 <td>{transferencia.cuenta_origen_id}</td>
                 <td>{transferencia.cuenta_destino_id ?? "—"}</td>
                 <td>{transferencia.beneficiario_id ?? "—"}</td>
-                <td>{transferencia.monto}</td>
+                <td>
+                  <Monto value={transferencia.monto} moneda={transferencia.moneda} />
+                </td>
                 <td>{transferencia.moneda}</td>
                 <td>
                   <span className={badgeClass(transferencia.estado)}>{transferencia.estado}</span>
                 </td>
-                <td>{new Date(transferencia.created_at).toLocaleString()}</td>
+                <td>
+                  <Fecha value={transferencia.created_at} conHora />
+                </td>
               </tr>
             ))}
           </tbody>
