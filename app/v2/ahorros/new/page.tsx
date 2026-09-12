@@ -10,6 +10,7 @@ import { AhorroFields, validarAhorro } from "@/components/v2/AhorroFields";
 import { ClienteSelect, CuentaSelect } from "@/components/v2/EntitySelects";
 import { crearAhorroV2 } from "@/lib/api/v2/ahorros";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { testIds } from "@/lib/testids";
 import { useClientesV2, useCuentasCliente } from "@/lib/v2/useEntidadesCliente";
@@ -27,7 +28,7 @@ export default function NuevoAhorroV2Page() {
 
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
       cuentaId: "",
       nombreMeta: "",
       metaMonto: "",

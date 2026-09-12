@@ -15,6 +15,7 @@ import { MONTO_PRESTAMO, PLAZOS_PRESTAMO, SimulacionPrestamo } from "@/component
 import { Monto, Porcentaje } from "@/components/Valores";
 import { solicitarPrestamoV2 } from "@/lib/api/v2/prestamos";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
+import { defaultUsuarioIdV2 } from "@/lib/v2/admin";
 import { useFormState } from "@/lib/forms/useFormState";
 import { formatMonto } from "@/lib/format";
 import { testIds } from "@/lib/testids";
@@ -37,7 +38,7 @@ export default function NuevoPrestamoV2Page() {
 
   const form = useFormState({
     initial: {
-      usuarioId: searchParams.get("usuarioId") ?? (usuario ? String(usuario.id) : ""),
+      usuarioId: searchParams.get("usuarioId") ?? defaultUsuarioIdV2(usuario),
       cuentaId: "",
       montoSolicitado: "",
       tasaInteres: "18",
