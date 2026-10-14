@@ -80,7 +80,8 @@ export default function NuevoAhorroV2Page() {
             {...form.fieldProps("cuentaId", { hint: true })}
             items={cuentasPyg}
             isLoading={cuentasLoading}
-            emptyLabel="El titular no tiene cuentas activas en PYG"
+            disabled={!form.values.usuarioId}
+            emptyLabel={form.values.usuarioId ? "El titular no tiene cuentas activas en PYG" : "Elegí primero el titular"}
           />
         </Field>
         <AhorroFields form={form} />
