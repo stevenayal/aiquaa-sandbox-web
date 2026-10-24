@@ -17,12 +17,17 @@ export function validarBeneficiario(v: BeneficiarioValores) {
   });
 }
 
-/** `(usuario_id, numero_cuenta)` es UNIQUE: el 409 va al campo de número de cuenta. */
+export const CUENTA_REPETIDA = "Ya tenés un beneficiario con este número de cuenta.";
+
+/**
+ * `(usuario_id, numero_cuenta)` es UNIQUE: el 409 va al campo de número de cuenta,
+ * con el mismo mensaje que la validación previa del alta (`CUENTA_REPETIDA`).
+ */
 export const BENEFICIARIO_API_ERRORS: ApiErrorRule<"numeroCuenta">[] = [
   {
     field: "numeroCuenta",
     when: mensajeContiene("numero_cuenta", "duplicate"),
-    message: "Ya tenés un beneficiario con este número de cuenta.",
+    message: CUENTA_REPETIDA,
   },
 ];
 

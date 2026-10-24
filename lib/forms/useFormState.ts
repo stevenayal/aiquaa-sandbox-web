@@ -119,6 +119,12 @@ export function useFormState<T extends Record<string, string>>({ initial, valida
     return rule.field;
   }
 
+  /** Error de una regla que la UI resuelve sin request (ej. un duplicado); se limpia al editar el campo. */
+  function setFieldError(name: K, message: string) {
+    setServerErrors((prev) => ({ ...prev, [name]: message }));
+    focusField(name);
+  }
+
   function reset(next: T = initial) {
     setValues(next);
     setTouched(new Set());
@@ -164,6 +170,7 @@ export function useFormState<T extends Record<string, string>>({ initial, valida
     isValid: Object.keys(validationErrors).length === 0,
     validateFields,
     applyApiError,
+    setFieldError,
     formError,
     setFormError,
     reset,
