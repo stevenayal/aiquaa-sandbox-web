@@ -6,7 +6,7 @@ import shared from "@/components/shared.module.css";
 import { ModuleHeader } from "@/components/ModuleHeader";
 import { Field, FormError } from "@/components/form/Field";
 import { useToast } from "@/components/Toast";
-import { BENEFICIARIO_API_ERRORS, BeneficiarioFields, validarBeneficiario } from "@/components/v2/BeneficiarioFields";
+import { BENEFICIARIO_API_ERRORS, BeneficiarioFields, CUENTA_REPETIDA, validarBeneficiario } from "@/components/v2/BeneficiarioFields";
 import { ClienteSelect } from "@/components/v2/EntitySelects";
 import { crearBeneficiarioV2 } from "@/lib/api/v2/beneficiarios";
 import { useUsuario } from "@/lib/auth/UsuarioContext";
@@ -48,10 +48,19 @@ export default function NuevoBeneficiarioV2Page() {
   const aliasRepetido = form.values.alias.trim()
     ? beneficiarios.find((b) => b.alias?.toLowerCase() === form.values.alias.trim().toLowerCase())
     : undefined;
+  // UI: mismo control que el UNIQUE (usuario_id, numero_cuenta) de la API, antes del request.
+  const numeroCuentaIngresado = form.values.numeroCuenta.trim();
+  const cuentaRepetida = numeroCuentaIngresado
+    ? beneficiarios.find((b) => b.numero_cuenta === numeroCuentaIngresado)
+    : undefined;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!form.validateFields()) return;
+    if (cuentaRepetida) {
+      form.setFieldError("numeroCuenta", CUENTA_REPETIDA);
+      return;
+    }
     if (aliasRepetido) {
       form.setFormError(`Ya usás el alias "${aliasRepetido.alias}" para ${aliasRepetido.nombre}.`);
       return;
@@ -81,6 +90,11 @@ export default function NuevoBeneficiarioV2Page() {
           <ClienteSelect {...form.fieldProps("usuarioId")} items={clientes} isLoading={clientesLoading} />
         </Field>
         <BeneficiarioFields form={form} />
+        {cuentaRepetida && (
+          <p className={shared.notice} data-testid="v2-beneficiarios-cuenta-repetida">
+            Ya tenés agendado a {cuentaRepetida.nombre} ({cuentaRepetida.banco}) con este número de cuenta.
+          </p>
+        )}
         {aliasRepetido && (
           <p className={shared.notice} data-testid="v2-beneficiarios-alias-repetido">
             Ya usás este alias para {aliasRepetido.nombre}.
