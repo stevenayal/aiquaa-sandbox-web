@@ -117,7 +117,8 @@ export default function NuevoDepositoV2Page() {
               {...form.fieldProps("cuentaId", { hint: true })}
               items={cuentasPyg}
               isLoading={cuentasLoading}
-              emptyLabel="El titular no tiene cuentas activas en PYG"
+              disabled={!form.values.usuarioId}
+              emptyLabel={form.values.usuarioId ? "El titular no tiene cuentas activas en PYG" : "Elegí primero el titular"}
             />
           </Field>
           <Field form={form} name="monto" label="Monto" hint={`Mínimo ${formatMonto(MONTO_MINIMO, "PYG")}.`}>
