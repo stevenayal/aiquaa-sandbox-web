@@ -190,7 +190,7 @@ URL y las reglas de negocio del banco a la vista (ver "Reglas de UI vs. reglas d
 | Clientes | `/v2/usuarios`, `/v2/usuarios/new`, `/v2/usuarios/[id]` | Transversal: de acá sale el `usuarioId` del resto. Alta en 3 pasos (datos, documento con formato según tipo, revisión); el detail deja el documento en solo lectura |
 | Cuentas | `/v2/cuentas`, `/v2/cuentas/new`, `/v2/cuentas/[id]` | Grupo 1. Apertura con tarjetas de tipo/moneda; el detail muestra saldo, bloquear/desbloquear/cerrar según estado y el extracto (débito/crédito separados, paginado) |
 | Tarjetas | `/v2/tarjetas`, `/v2/tarjetas/new`, `/v2/tarjetas/[id]` | Grupo 2. Vista del plástico, barra de uso del límite, bloqueo con motivo obligatorio (modal) y vencimiento MM/AAAA |
-| Préstamos | `/v2/prestamos`, `/v2/prestamos/new`, `/v2/prestamos/[id]` | Grupo 3. Simulador de cuotas en vivo (misma fórmula que la API) antes de solicitar; el detail aprueba con confirmación y solo deja pagar la próxima cuota pendiente |
+| Préstamos | `/v2/prestamos`, `/v2/prestamos/new`, `/v2/prestamos/[id]` | Grupo 3. Simulador de cuotas en vivo (misma fórmula que la API) antes de solicitar; el detail aprueba con confirmación, marca la mora y deja pagar la próxima cuota o varias seguidas desde la próxima |
 | Beneficiarios | `/v2/beneficiarios`, `/v2/beneficiarios/new`, `/v2/beneficiarios/[id]` | Grupo 4, con Transferencias. Banco de una lista de bancos paraguayos, alias único por cliente |
 | Transferencias | `/v2/transferencias`, `/v2/transferencias/new`, `/v2/transferencias/[id]` | Grupo 4. La raíz es el historial; el alta es un wizard de 4 pasos (destino → monto → confirmación → comprobante) con tope diario; el detail anula con motivo |
 | Ahorros | `/v2/ahorros`, `/v2/ahorros/new`, `/v2/ahorros/[id]` | Grupo 5. Proyecta en cuántos meses se llega a la meta; el detail aporta con tope de saldo de la cuenta |
@@ -211,6 +211,10 @@ con estos datos pasa; por la UI, no):
 | Débito con cuenta asociada obligatoria; Amex solo emite crédito; límite entre 1 y 100 millones | Emisión de tarjetas | Cuenta y límite son opcionales, sin rango |
 | Monto de préstamo entre 500 mil y 500 millones; plazos de una lista estándar | Solicitud de préstamos | Acepta cualquier monto > 0 y plazo de 1 a 120 meses |
 | Pagar solo la próxima cuota pendiente, en orden | Cuotas de préstamos | Permite pagar cualquier cuota, en cualquier orden |
+| Pagar varias cuotas solo si son consecutivas desde la próxima, con el total exacto a la vista | Cuotas de préstamos | Paga de a una cuota por request |
+| El pago se rechaza con "Fondos insuficientes" si la cuenta asociada al préstamo no lo cubre | Cuotas de préstamos | No mira la cuenta ni debita |
+| Una cuota pendiente con vencimiento pasado se muestra Vencida, y el préstamo En mora con el monto vencido | Detalle de préstamo | Solo devuelve `vencida` si se guardó así; no lo recalcula por fecha |
+| Un cliente logueado (no admin) solo ve sus préstamos: el de otro cliente muestra "Acceso denegado" | Préstamos | Cualquier key lee cualquier préstamo |
 | Alias de beneficiario único por cliente | Beneficiarios | No lo controla |
 | Tope diario de transferencias por cuenta (PYG 50.000.000 / USD 10.000) | Transferencias | Sin límite |
 | Motivo obligatorio (10-120 caracteres) para anular una transferencia | Anular transferencia | El motivo es opcional |
