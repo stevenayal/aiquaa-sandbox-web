@@ -174,3 +174,42 @@ export const MOTIVOS_BLOQUEO = [
 export function porcentajeUso(saldoUtilizado: number, limite: number): number {
   return limite > 0 ? round2((saldoUtilizado / limite) * 100) : 0;
 }
+
+// --- Préstamos: mora y pagos de varias cuotas -------------------------------
+
+/** Suma de montos en centavos enteros, para que 3 × 773.333,33 dé exacto y no 2.319.999,9899. */
+export function sumarMontos(montos: Array<string | number>): number {
+  return montos.reduce<number>((s, m) => s + Math.round(Number(m) * 100), 0) / 100;
+}
+
+/**
+ * UI: una cuota está vencida si la API ya la marcó `vencida` o si sigue
+ * `pendiente` con la fecha de vencimiento pasada. La API no recalcula el
+ * estado con el paso del tiempo, así que la pantalla lo deriva de la fecha.
+ */
+export function cuotaVencida(
+  cuota: { estado: string; fecha_vencimiento: string },
+  hoy: string = toISODate(new Date()),
+): boolean {
+  if (cuota.estado === "pagada") return false;
+  return cuota.estado === "vencida" || cuota.fecha_vencimiento.slice(0, 10) < hoy;
+}
+
+export interface MoraPrestamo {
+  enMora: boolean;
+  cuotasVencidas: number;
+  montoVencido: number;
+}
+
+/** UI: un préstamo está en mora si tiene al menos una cuota vencida sin pagar. */
+export function moraPrestamo(
+  cuotas: ReadonlyArray<{ estado: string; fecha_vencimiento: string; monto: string }>,
+  hoy?: string,
+): MoraPrestamo {
+  const vencidas = cuotas.filter((c) => cuotaVencida(c, hoy));
+  return {
+    enMora: vencidas.length > 0,
+    cuotasVencidas: vencidas.length,
+    montoVencido: sumarMontos(vencidas.map((c) => c.monto)),
+  };
+}

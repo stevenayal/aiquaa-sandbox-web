@@ -15,6 +15,7 @@ import { testIds } from "@/lib/testids";
 import { badgeFor, capitalizar } from "@/lib/v2/labels";
 import { round2 } from "@/lib/v2/reglas";
 import { useFiltroCliente } from "@/lib/v2/useFiltroCliente";
+import { useUsuario } from "@/lib/auth/UsuarioContext";
 
 const ids = testIds("v2-prestamos");
 const ESTADOS: EstadoPrestamoV2[] = ["solicitado", "aprobado", "rechazado", "pagado"];
@@ -29,10 +30,14 @@ function porcentajePagado(p: PrestamoV2): number {
 
 export default function PrestamosV2Page() {
   const titular = useFiltroCliente();
+  const { usuario } = useUsuario();
   const [estado, setEstado] = useQueryParam("estado");
+  // UI: un cliente logueado solo ve sus propios préstamos; elegir otro titular es cosa del admin.
+  const soloPropios = !!usuario && !titular.isAdmin;
+  const usuarioId = soloPropios ? usuario.id : titular.usuarioId;
 
-  const { data: prestamos, error, isLoading } = useSWR(["v2-prestamos", titular.usuarioId, estado], () =>
-    listPrestamosV2({ usuarioId: titular.usuarioId, estado: (estado || undefined) as EstadoPrestamoV2 | undefined }),
+  const { data: prestamos, error, isLoading } = useSWR(["v2-prestamos", usuarioId, estado], () =>
+    listPrestamosV2({ usuarioId, estado: (estado || undefined) as EstadoPrestamoV2 | undefined }),
   );
 
   const list = useListControls<PrestamoV2>(prestamos, {
@@ -52,7 +57,7 @@ export default function PrestamosV2Page() {
     <div className={shared.page}>
       <ModuleHeader moduleKey="v2-prestamos" title="Préstamos">
         <Link
-          href={titular.usuarioId ? `/v2/prestamos/new?usuarioId=${titular.usuarioId}` : "/v2/prestamos/new"}
+          href={usuarioId ? `/v2/prestamos/new?usuarioId=${usuarioId}` : "/v2/prestamos/new"}
           className={shared.button}
           data-testid="v2-prestamos-nuevo"
         >
@@ -61,7 +66,7 @@ export default function PrestamosV2Page() {
       </ModuleHeader>
 
       <ListToolbar>
-        <FiltroCliente value={titular.value} onChange={titular.setValue} testId={ids.field("usuarioId")} />
+        {!soloPropios && <FiltroCliente value={titular.value} onChange={titular.setValue} testId={ids.field("usuarioId")} />}
         <div className={shared.field}>
           <label htmlFor="estado">Estado</label>
           <select id="estado" value={estado} onChange={(e) => setEstado(e.target.value)} data-testid={ids.field("estado")}>
