@@ -221,6 +221,18 @@ con estos datos pasa; por la UI, no):
 | Meta de ahorro máximo a 120 meses según el aporte cargado | Ahorro programado | Sin tope de plazo |
 | Monto mínimo de depósito a plazo (PYG 1.000.000) | Depósitos a plazo | Sin mínimo, solo > 0 |
 
+### Datos de prueba de préstamos (curso 2)
+
+Ids de la base compartida para practicar las reglas de préstamos. Es un sandbox común: si alguien
+da de baja o paga uno de estos préstamos, hay que crear otro con los mismos datos.
+
+| Caso | Dato |
+|---|---|
+| Préstamo totalmente pagado | N° 126: cliente #1 (Ana Torres), cuenta #1, PYG 1.500.000 al 12 % en 3 cuotas de PYG 560.000, todas pagadas, saldo 0, estado `pagado` |
+| Préstamo en mora | N° 4: cliente #3, cuenta #4, cuotas vencidas desde julio 2026 |
+| Fondos insuficientes | N° 4: el total de las 6 cuotas (PYG 9.600.000) supera el saldo de la cuenta #4 |
+| Préstamo ajeno | Ingresar como `bruno.ramirez@bancoqa.com` (cliente #2, dueño del N° 2) y abrir el N° 4 |
+
 ## Buenas prácticas de UX aplicadas
 
 Basado en las [30 leyes de UX](https://lawsofux.com/es/). Ya estaban resueltas de fábrica:
