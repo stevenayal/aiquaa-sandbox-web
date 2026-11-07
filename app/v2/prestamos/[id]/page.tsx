@@ -186,7 +186,7 @@ export default function PrestamoV2DetallePage() {
             await Promise.all([mutate(resultado.prestamo, { revalidate: false }), mutateCuotas()]);
             toast.success(
               resultado.prestamo.estado === "pagado"
-                ? "¡Última cuota pagada! El préstamo quedó cancelado."
+                ? "¡Última cuota pagada! El préstamo quedó en estado Pagado."
                 : `Cuota ${resultado.cuota.numero_cuota} pagada.`,
             );
           }}
