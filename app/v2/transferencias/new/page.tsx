@@ -119,7 +119,7 @@ export default function NuevaTransferenciaV2Page() {
   }
 
   // Cuenta destino interna: otra cuenta activa del cliente, en la misma moneda (espejo de la API).
-  const destinos = cuentasActivas.filter((c) => String(c.id) !== form.values.cuentaOrigenId && (!origen || c.moneda === origen.moneda));
+  const destinos = origen ? cuentasActivas.filter((c) => c.id !== origen.id && c.moneda === origen.moneda) : [];
   const destino = destinos.find((c) => String(c.id) === form.values.cuentaDestinoId);
   const beneficiario = beneficiarios.find((b) => String(b.id) === form.values.beneficiarioId);
   const montoNum = parseMonto(form.values.monto) ?? 0;
@@ -235,7 +235,8 @@ export default function NuevaTransferenciaV2Page() {
                   onChange={(e) => set("cuentaOrigenId", e.target.value)}
                   items={cuentasActivas}
                   isLoading={cuentasLoading}
-                  emptyLabel="El cliente no tiene cuentas activas"
+                  disabled={!form.values.usuarioId}
+                  emptyLabel={form.values.usuarioId ? "El cliente no tiene cuentas activas" : "Elegí primero el cliente"}
                 />
               </Field>
               {form.values.tipo === "propia" ? (
@@ -254,10 +255,16 @@ export default function NuevaTransferenciaV2Page() {
                 </Field>
               ) : (
                 <Field form={form} name="beneficiarioId" label="Beneficiario">
-                  <BeneficiarioSelect {...form.fieldProps("beneficiarioId")} items={beneficiarios} isLoading={beneficiariosLoading} />
+                  <BeneficiarioSelect
+                    {...form.fieldProps("beneficiarioId")}
+                    items={beneficiarios}
+                    isLoading={beneficiariosLoading}
+                    disabled={!form.values.usuarioId}
+                    emptyLabel={form.values.usuarioId ? "El cliente no tiene beneficiarios cargados" : "Elegí primero el cliente"}
+                  />
                 </Field>
               )}
-              {form.values.tipo === "beneficiario" && !beneficiariosLoading && beneficiarios.length === 0 && (
+              {form.values.tipo === "beneficiario" && form.values.usuarioId && !beneficiariosLoading && beneficiarios.length === 0 && (
                 <p className={shared.info}>
                   <Link href={`/v2/beneficiarios/new?usuarioId=${form.values.usuarioId}`}>Agregá un beneficiario</Link> para
                   transferir a otro banco.
